@@ -1,0 +1,3276 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EIVHB Com' — Calendrier &amp; Générateur</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Work+Sans:wght@400;500;600&display=swap');
+
+:root{
+  --blue:#1B4EA8;
+  --blue-dark:#0F2E63;
+  --blue-darker:#0A2049;
+  --red:#C41E3A;
+  --gold:#FFD700;
+  --bg:#F4F5F8;
+  --surface:#FFFFFF;
+  --ink:#1A1F2B;
+  --muted:#68707F;
+  --line:#E2E5EC;
+  --radius:10px;
+}
+*{box-sizing:border-box;}
+body{
+  margin:0;
+  background:var(--bg);
+  color:var(--ink);
+  font-family:'Work Sans', sans-serif;
+  -webkit-font-smoothing:antialiased;
+  overflow-x:hidden;
+}
+h1,h2,h3,.disp{ font-family:'Barlow Condensed', sans-serif; font-weight:700; letter-spacing:0.01em; }
+.court-line{
+  height:1px;
+  background:repeating-linear-gradient(90deg, var(--gold) 0 10px, transparent 10px 18px);
+  margin:0;
+}
+#app{ max-width:1180px; margin:0 auto; }
+@media (min-width:1500px){
+  #app{ max-width:1560px; }
+  .gen-layout{ grid-template-columns:400px 1fr !important; }
+  .cal-day{ min-height:120px; }
+}
+
+/* header */
+.topbar{
+  background:linear-gradient(180deg, var(--blue-darker), var(--blue-dark));
+  color:#fff;
+  padding:22px 28px 0;
+  border-radius:0 0 16px 16px;
+}
+.topbar-inner{ display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:14px; padding-bottom:16px; }
+.brand{ display:flex; align-items:center; gap:12px; }
+.crest{
+  width:42px; height:42px; border-radius:50%;
+  background:var(--blue);
+  border:2px solid var(--gold);
+  display:flex; align-items:center; justify-content:center;
+  font-family:'Barlow Condensed', sans-serif; font-weight:700; font-size:15px; color:#fff;
+}
+.brand-name{ font-size:24px; line-height:1; text-transform:uppercase; }
+.brand-sub{ font-size:12px; color:#B9C6E6; font-family:'Work Sans'; font-weight:400; margin-top:2px; }
+.tabs{ display:flex; gap:4px; }
+.tab-btn{
+  font-family:'Barlow Condensed', sans-serif;
+  font-size:16px; font-weight:600; text-transform:uppercase; letter-spacing:0.03em;
+  background:transparent; border:none; color:#9FB1D9;
+  padding:10px 18px; cursor:pointer; border-radius:8px 8px 0 0;
+  transition:color .15s, background .15s;
+}
+.tab-btn.active{ color:#fff; background:rgba(255,255,255,0.08); }
+.tab-btn:hover{ color:#fff; }
+
+main{ padding:24px 20px 60px; }
+
+/* buttons */
+button{ font-family:'Work Sans', sans-serif; cursor:pointer; }
+.btn{
+  border:1px solid var(--line); background:var(--surface); color:var(--ink);
+  padding:9px 16px; border-radius:8px; font-size:14px; font-weight:500;
+  display:inline-flex; align-items:center; gap:6px;
+}
+.btn:hover{ border-color:var(--blue); }
+.btn-primary{ background:var(--blue); color:#fff; border-color:var(--blue); }
+.btn-primary:hover{ background:var(--blue-dark); }
+.btn-gold{ background:var(--gold); color:var(--blue-darker); border-color:var(--gold); font-weight:600; }
+.btn-gold:hover{ filter:brightness(0.95); }
+.btn-ghost{ background:transparent; border:none; color:var(--muted); padding:4px 8px; }
+.btn-ghost:hover{ color:var(--red); }
+.btn-sm{ padding:5px 10px; font-size:12px; }
+
+input, select, textarea{
+  font-family:'Work Sans', sans-serif; font-size:14px;
+  border:1px solid var(--line); border-radius:8px; padding:9px 11px;
+  background:#fff; color:var(--ink); width:100%;
+}
+input:focus, select:focus, textarea:focus{ outline:none; border-color:var(--blue); box-shadow:0 0 0 3px rgba(27,78,168,0.12); }
+textarea{ resize:vertical; }
+.resizable-textarea{ resize:vertical; min-height:120px; font-family:'Work Sans', sans-serif; line-height:1.5; }
+label{ font-size:12px; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:0.03em; display:block; margin-bottom:6px; }
+
+/* ===== CALENDAR VIEW ===== */
+.cal-header{ display:flex; align-items:center; justify-content:space-between; margin-bottom:18px; flex-wrap:wrap; gap:10px; }
+.cal-nav{ display:flex; align-items:center; gap:10px; }
+.cal-month-label{ font-size:26px; text-transform:capitalize; min-width:220px; }
+.legend{ display:flex; gap:14px; flex-wrap:wrap; font-size:12px; color:var(--muted); }
+.legend span{ display:inline-flex; align-items:center; gap:5px; }
+.dot{ width:9px; height:9px; border-radius:50%; display:inline-block; }
+.dot-fb{ background:var(--blue); }
+.dot-ig{ background:var(--red); }
+.dot-wa{ background:#1DA851; }
+.dot-site{ background:#7A5AF8; }
+.dot-nl{ background:var(--blue-darker); }
+.header-actions{ display:flex; gap:8px; flex-wrap:wrap; }
+
+.cal-grid{
+  display:grid; grid-template-columns:repeat(7, 1fr);
+  gap:6px;
+  background:var(--surface);
+  border-radius:14px; padding:14px; border:1px solid var(--line);
+}
+.cal-dow{ text-align:center; font-size:11px; font-weight:600; color:var(--muted); text-transform:uppercase; padding-bottom:6px; }
+.cal-day{
+  min-height:96px; border-radius:8px; border:1px solid var(--line);
+  padding:6px; background:#FAFBFD; cursor:pointer; position:relative;
+  display:flex; flex-direction:column; gap:3px;
+}
+.cal-day:hover{ border-color:var(--blue); }
+.cal-day.outside{ opacity:0.35; }
+.cal-day.today{ border-color:var(--gold); border-width:2px; }
+.cal-daynum{ font-size:12px; font-weight:600; color:var(--muted); }
+.cal-pill{
+  font-size:10.5px; padding:3px 6px; border-radius:5px; color:#fff;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  display:flex; align-items:center; gap:4px;
+}
+.cal-pill.status-idee{ opacity:0.55; }
+.cal-pill.status-brouillon{ border:1px dashed rgba(255,255,255,0.6); }
+.add-day-btn{ align-self:flex-end; opacity:0; font-size:16px; color:var(--blue); background:none; border:none; line-height:1; }
+.cal-day:hover .add-day-btn{ opacity:1; }
+
+/* list fallback mobile */
+.mobile-list{ display:none; }
+@media (max-width:720px){
+  .cal-grid{ display:none; }
+  .mobile-list{ display:flex; flex-direction:column; gap:8px; }
+  .ml-item{ background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:10px 12px; display:flex; justify-content:space-between; align-items:center; gap:8px; }
+}
+
+/* week view */
+.week-grid{ display:grid; grid-template-columns:repeat(7, 1fr); gap:8px; }
+@media (max-width:860px){ .week-grid{ grid-template-columns:1fr; } }
+.week-day{ background:var(--surface); border:1px solid var(--line); border-radius:12px; padding:10px; min-height:120px; }
+.week-day.today{ border-color:var(--gold); border-width:2px; }
+.week-day-head{ display:flex; align-items:center; justify-content:space-between; gap:6px; font-size:12.5px; font-weight:600; margin-bottom:8px; }
+
+/* kpi */
+.kpi-grid{ display:grid; grid-template-columns:repeat(auto-fit, minmax(160px,1fr)); gap:12px; }
+.kpi-cell{ background:#FAFBFD; border:1px solid var(--line); border-radius:8px; padding:10px; }
+.kpi-readonly{ font-size:20px; font-weight:600; font-family:'Barlow Condensed'; color:var(--blue); }
+
+/* modal */
+.overlay{ position:fixed; inset:0; background:rgba(10,20,40,0.5); display:flex; align-items:center; justify-content:center; z-index:50; padding:16px; }
+.modal{ background:#fff; border-radius:14px; padding:24px; width:100%; max-width:440px; max-height:88vh; overflow-y:auto; }
+.modal.wide{ max-width:600px; }
+.modal h3{ margin:0 0 16px; font-size:22px; }
+.field{ margin-bottom:14px; }
+.modal-actions{ display:flex; justify-content:space-between; margin-top:20px; }
+.chip-row{ display:flex; gap:8px; flex-wrap:wrap; }
+.chip{
+  border:1px solid var(--line); border-radius:20px; padding:6px 13px; font-size:13px; cursor:pointer; background:#fff; color:var(--muted);
+}
+.chip.selected{ background:var(--blue); color:#fff; border-color:var(--blue); }
+
+/* ideas modal */
+.idea-row{ border:1px solid var(--line); border-radius:10px; padding:10px 12px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center; gap:10px; }
+.idea-row .idea-title{ font-weight:500; font-size:14px; }
+.idea-row .hint{ margin-top:3px; }
+
+/* ===== GENERATOR VIEW ===== */
+.gen-layout{ display:grid; grid-template-columns:360px 1fr; gap:22px; align-items:start; }
+.gen-layout > div{ min-width:0; }
+@media (max-width:860px){ .gen-layout{ grid-template-columns:1fr; } }
+.card{ background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:20px; min-width:0; }
+.card canvas{ max-width:100%; height:auto; }
+.card + .card{ margin-top:18px; }
+.preset-grid{ display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:16px; }
+.preset-btn{
+  text-align:left; border:1px solid var(--line); background:#FAFBFD; border-radius:8px; padding:9px 10px;
+  font-size:12.5px; font-weight:500; color:var(--ink);
+}
+.preset-btn.active{ border-color:var(--red); background:#FDEEF0; color:var(--red); }
+.result-card{ border:1px solid var(--line); border-radius:12px; margin-bottom:16px; overflow:hidden; }
+.result-head{ padding:10px 16px; display:flex; align-items:center; justify-content:space-between; font-family:'Barlow Condensed'; font-weight:600; font-size:16px; text-transform:uppercase; letter-spacing:0.02em; color:#fff; }
+.result-head.fb{ background:var(--blue); }
+.result-head.ig{ background:var(--red); }
+.result-head.wa{ background:#1DA851; }
+.result-head.site{ background:#7A5AF8; }
+.result-body{ padding:14px 16px; font-size:14px; line-height:1.55; white-space:pre-wrap; }
+.result-foot{ padding:0 16px 14px; display:flex; gap:8px; flex-wrap:wrap; }
+.empty-state{ text-align:center; padding:60px 20px; color:var(--muted); }
+.empty-state i{ font-size:30px; display:block; margin-bottom:10px; color:var(--line); }
+.loading-line{ display:flex; align-items:center; gap:10px; color:var(--muted); font-size:14px; padding:20px 0; }
+.spinner{ width:16px; height:16px; border-radius:50%; border:2px solid var(--line); border-top-color:var(--blue); animation:spin 0.8s linear infinite; }
+@keyframes spin{ to{ transform:rotate(360deg); } }
+.hint{ font-size:12px; color:var(--muted); margin-top:6px; }
+
+/* images / visuels */
+.upload-row{ display:flex; gap:8px; align-items:flex-end; margin-bottom:14px; flex-wrap:wrap; }
+.upload-row > div{ flex:1; min-width:130px; }
+.thumb-grid{ display:grid; grid-template-columns:repeat(auto-fill, minmax(72px,1fr)); gap:8px; }
+.thumb{ position:relative; border:2px solid var(--line); border-radius:8px; overflow:hidden; cursor:pointer; aspect-ratio:1; background:#FAFBFD; }
+.thumb.selected{ border-color:var(--gold); box-shadow:0 0 0 2px var(--gold) inset; }
+.thumb img{ width:100%; height:100%; object-fit:cover; display:block; }
+.thumb-label{ position:absolute; bottom:0; left:0; right:0; background:rgba(10,20,40,0.72); color:#fff; font-size:9px; padding:2px 4px; text-align:center; }
+.thumb-del{ position:absolute; top:2px; right:2px; background:rgba(10,20,40,0.7); color:#fff; border:none; border-radius:50%; width:16px; height:16px; font-size:10px; line-height:1; }
+.selected-image-banner{ display:flex; align-items:center; gap:8px; background:#FFFBEA; border:1px solid var(--gold); border-radius:8px; padding:6px 10px; font-size:12px; margin-bottom:12px; }
+.selected-image-banner img{ width:24px; height:24px; object-fit:cover; border-radius:4px; }
+
+/* match builder logos */
+.logo-pair{ display:flex; align-items:center; gap:12px; margin-bottom:10px; }
+.logo-slot{ flex:1; text-align:center; background:#FAFBFD; border:1px solid var(--line); border-radius:10px; padding:10px; }
+.logo-preview{ width:56px; height:56px; object-fit:contain; margin:8px auto; display:block; }
+.logo-placeholder{ width:56px; height:56px; margin:8px auto; display:flex; align-items:center; justify-content:center; border:1px dashed var(--line); border-radius:8px; font-size:10px; color:var(--muted); text-align:center; }
+.logo-vs{ font-family:'Barlow Condensed'; font-weight:700; color:var(--muted); font-size:14px; }
+
+/* history */
+.history-item{ border:1px solid var(--line); border-radius:10px; padding:10px 12px; margin-bottom:8px; cursor:pointer; }
+.history-item:hover{ border-color:var(--blue); }
+.history-head{ display:flex; justify-content:space-between; align-items:center; gap:8px; }
+.history-title{ font-weight:500; font-size:13.5px; }
+.history-meta{ font-size:11px; color:var(--muted); margin-top:2px; }
+.badge{ font-size:10px; padding:2px 7px; border-radius:10px; color:#fff; }
+.section-toggle{ display:flex; justify-content:space-between; align-items:center; cursor:pointer; }
+.section-toggle .chev{ transition:transform .15s; color:var(--muted); }
+.section-toggle.open .chev{ transform:rotate(90deg); }
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+const STORAGE_PREFIX = 'eivhbcom_';
+function hasNativeStorage(){ return typeof window.storage !== 'undefined' && window.storage && typeof window.storage.get === 'function'; }
+async function storageGet(key){
+  if(hasNativeStorage()){
+    try{ return await storageGet(key); }catch(e){ /* fall through to local */ }
+  }
+  try{
+    const raw = localStorage.getItem(STORAGE_PREFIX+key);
+    return raw !== null ? { key, value: raw } : null;
+  }catch(e){ return null; }
+}
+async function storageSet(key, value){
+  if(hasNativeStorage()){
+    try{ return await storageSet(key, value); }catch(e){ /* fall through to local */ }
+  }
+  try{ localStorage.setItem(STORAGE_PREFIX+key, value); return { key, value }; }catch(e){ return null; }
+}
+
+const CLUB = {
+  nom: "Entente Igny-Vauhallan Handball",
+  sigle: "EIVHB",
+  gymnase: "Gymnase Guéric Kervadec",
+  villes: "Igny / Vauhallan (91)",
+  couleurs: "Bleu royal, rouge, blanc, or",
+  valeurs: "respect, convivialité, formation, esprit d'équipe, solidarité, passion",
+  ton: "chaleureux, fédérateur, jamais corporate, phrases courtes, quelques emojis sportifs avec parcimonie",
+  email: "eivhb91@gmail.com"
+};
+
+const PRESETS = [
+  "Résultats du week-end","Annonce d'un match","Calendrier des matchs (semaine)","Portrait joueur/joueuse","Portrait bénévole",
+  "Portrait entraîneur","Partenaire du mois","Recrutement / inscriptions","Anniversaire du club",
+  "Appel aux bénévoles","Conseil technique / entraînement","Conseil du mois","Défi / Jeu / Quiz handball",
+  "Événement (loto, galette, AG...)","Remerciements"
+];
+const IMAGE_PRESETS = ["Résultats du week-end", "Annonce d'un match", "Calendrier des matchs (semaine)"];
+const IMAGE_CATEGORIES = { resultats: "Résultats", annonce_match: "Annonce de match", calendrier_semaine: "Calendrier de la semaine", general: "Général" };
+
+const TEAM_CATEGORIES = [
+  "École du Hand","-9 Mixte","-11 Mixte","-13 M","-13 F","-15 M","-15 F","-18 M","-18 F",
+  "Séniors M","Séniors F","Loisirs"
+];
+
+const EXERCISE_LIBRARY = [
+  { id:'ech1', nom:"Échauffement en étoile", categorie:"Échauffement", poste:"Tous postes", type:"Collectif",
+    description:"Les joueurs se répartissent aux 4 coins du terrain et se croisent en diagonale en variant les allures (marche, course, pas chassés).",
+    diagram:'court' },
+  { id:'pass1', nom:"Passes en triangle mobile", categorie:"Passes", poste:"Tous postes", type:"Collectif",
+    description:"3 joueurs forment un triangle et se passent le ballon en se déplaçant en permanence, sans jamais rester statique.",
+    diagram:'triangle' },
+  { id:'pass2', nom:"Passe et suit", categorie:"Passes", poste:"Tous postes", type:"Collectif",
+    description:"Le joueur passe le ballon puis suit sa passe pour prendre la place du réceptionneur ; le réceptionneur relance vers le joueur suivant.",
+    diagram:'wave' },
+  { id:'tir1', nom:"Tir en appui après course", categorie:"Tirs", poste:"Ailier", type:"Solo",
+    description:"Course d'élan depuis le milieu de terrain, réception d'une passe et tir en extension sur les 9 mètres.",
+    diagram:'shot' },
+  { id:'tir2', nom:"Tir en suspension croisé", categorie:"Tirs", poste:"Arrière", type:"Solo",
+    description:"Départ latéral, un appui, saut en suspension et tir croisé vers l'angle opposé du but.",
+    diagram:'shotCross' },
+  { id:'def1', nom:"Défense en éventail 6-0", categorie:"Défense", poste:"Défenseur", type:"Collectif",
+    description:"Les 6 défenseurs se déplacent en éventail en fonction du porteur de balle, en gardant les distances et en communiquant.",
+    diagram:'defense' },
+  { id:'def2', nom:"1 contre 1 défensif", categorie:"Défense", poste:"Défenseur", type:"Solo",
+    description:"Face à face attaquant/défenseur : le défenseur doit orienter la course de l'attaquant sans faute et sans se faire déborder.",
+    diagram:'duel' },
+  { id:'gard1', nom:"Gardien : parades croisées", categorie:"Gardien", poste:"Gardien", type:"Solo",
+    description:"Le gardien enchaîne des tirs alternés gauche/droite depuis les ailes pour travailler les déplacements latéraux.",
+    diagram:'goal' },
+  { id:'cond1', nom:"Conduite de balle slalom", categorie:"Conduite de balle", poste:"Tous postes", type:"Solo",
+    description:"Dribble en slalom entre des plots disposés en ligne, en changeant de main à chaque plot.",
+    diagram:'slalom' },
+  { id:'coll1', nom:"Jeu collectif : 3 contre 2", categorie:"Jeu collectif", poste:"Tous postes", type:"Collectif",
+    description:"Situation de surnombre offensif : 3 attaquants contre 2 défenseurs pour travailler la prise de décision rapide.",
+    diagram:'threeVtwo' },
+  { id:'coord1', nom:"Coordination : échelle de rythme", categorie:"Coordination", poste:"Tous postes", type:"Solo",
+    description:"Passages variés dans une échelle de rythme au sol (pieds joints, un pas par case, pas chassés) pour travailler la vivacité.",
+    diagram:'ladder' },
+  { id:'coll2', nom:"Contre-attaque rapide", categorie:"Jeu collectif", poste:"Tous postes", type:"Collectif",
+    description:"Récupération de balle en défense puis relance immédiate en 3 passes maximum pour finir en supériorité numérique.",
+    diagram:'counter' },
+  { id:'pivot1', nom:"Fixation et déblocage pivot", categorie:"Jeu collectif", poste:"Pivot", type:"Solo",
+    description:"Le pivot se place en appui dos au but, fixe son défenseur puis se démarque latéralement pour recevoir une passe et tirer.",
+    diagram:'duel' },
+  { id:'dc1', nom:"Prise de décision demi-centre", categorie:"Jeu collectif", poste:"Demi-centre", type:"Solo",
+    description:"Le demi-centre monte de balle et doit lire la défense pour choisir entre passe, pénétration ou tir en 3 secondes.",
+    diagram:'wave' }
+];
+
+function renderExerciseDiagramSVG(type){
+  const court = `<rect x="10" y="10" width="180" height="100" fill="none" stroke="#1B4EA8" stroke-width="2"/>
+    <rect x="10" y="35" width="20" height="50" fill="none" stroke="#C41E3A" stroke-width="1.5"/>
+    <rect x="170" y="35" width="20" height="50" fill="none" stroke="#C41E3A" stroke-width="1.5"/>
+    <path d="M30 20 A 40 40 0 0 1 30 100" fill="none" stroke="#C41E3A" stroke-width="1"/>
+    <path d="M170 20 A 40 40 0 0 0 170 100" fill="none" stroke="#C41E3A" stroke-width="1"/>`;
+  const diagrams = {
+    court: `${court}<circle cx="30" cy="20" r="4" fill="#FFD700"/><circle cx="170" cy="20" r="4" fill="#FFD700"/><circle cx="30" cy="100" r="4" fill="#FFD700"/><circle cx="170" cy="100" r="4" fill="#FFD700"/>
+      <line x1="30" y1="20" x2="170" y2="100" stroke="#1B4EA8" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#arrow)"/>
+      <line x1="170" y1="20" x2="30" y2="100" stroke="#1B4EA8" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#arrow)"/>`,
+    triangle: `${court}<circle cx="60" cy="30" r="5" fill="#1B4EA8"/><circle cx="140" cy="30" r="5" fill="#1B4EA8"/><circle cx="100" cy="90" r="5" fill="#1B4EA8"/>
+      <line x1="60" y1="30" x2="140" y2="30" stroke="#C41E3A" stroke-width="1.5" stroke-dasharray="3 3" marker-end="url(#arrow)"/>
+      <line x1="140" y1="30" x2="100" y2="90" stroke="#C41E3A" stroke-width="1.5" stroke-dasharray="3 3" marker-end="url(#arrow)"/>
+      <line x1="100" y1="90" x2="60" y2="30" stroke="#C41E3A" stroke-width="1.5" stroke-dasharray="3 3" marker-end="url(#arrow)"/>`,
+    wave: `${court}<circle cx="40" cy="60" r="5" fill="#1B4EA8"/><circle cx="100" cy="30" r="5" fill="#1B4EA8"/><circle cx="160" cy="60" r="5" fill="#1B4EA8"/>
+      <path d="M40 60 Q 70 20 100 30" fill="none" stroke="#C41E3A" stroke-width="1.5" stroke-dasharray="3 3" marker-end="url(#arrow)"/>
+      <path d="M100 30 Q 130 20 160 60" fill="none" stroke="#C41E3A" stroke-width="1.5" stroke-dasharray="3 3" marker-end="url(#arrow)"/>
+      <path d="M40 62 Q 70 90 96 32" fill="none" stroke="#FFD700" stroke-width="1.2" stroke-dasharray="1 3"/>`,
+    shot: `${court}<circle cx="100" cy="90" r="5" fill="#1B4EA8"/>
+      <path d="M100 90 Q 70 60 30 25" fill="none" stroke="#C41E3A" stroke-width="1.5" stroke-dasharray="3 3" marker-end="url(#arrow)"/>
+      <line x1="30" y1="25" x2="18" y2="20" stroke="#FFD700" stroke-width="2" marker-end="url(#arrow)"/>`,
+    shotCross: `${court}<circle cx="60" cy="90" r="5" fill="#1B4EA8"/>
+      <path d="M60 90 L 100 55" fill="none" stroke="#C41E3A" stroke-width="1.5" stroke-dasharray="3 3" marker-end="url(#arrow)"/>
+      <line x1="100" y1="55" x2="172" y2="30" stroke="#FFD700" stroke-width="2" marker-end="url(#arrow)"/>`,
+    defense: `${court}${[30,55,80,105,130,155].map(x=>`<circle cx="${x}" cy="45" r="4" fill="#C41E3A"/>`).join('')}
+      <circle cx="100" cy="90" r="5" fill="#1B4EA8"/>
+      <path d="M30 45 Q 65 55 100 90" fill="none" stroke="#FFD700" stroke-width="1" stroke-dasharray="2 3"/>`,
+    duel: `${court}<circle cx="70" cy="90" r="5" fill="#1B4EA8"/><circle cx="70" cy="55" r="5" fill="#C41E3A"/>
+      <line x1="70" y1="90" x2="70" y2="55" stroke="#FFD700" stroke-width="1.5" stroke-dasharray="3 3" marker-end="url(#arrow)"/>`,
+    goal: `<rect x="80" y="10" width="40" height="30" fill="none" stroke="#1B4EA8" stroke-width="2"/><circle cx="100" cy="70" r="5" fill="#C41E3A"/>
+      <line x1="100" y1="70" x2="85" y2="20" stroke="#FFD700" stroke-width="1.5" stroke-dasharray="3 3" marker-end="url(#arrow)"/>
+      <line x1="100" y1="70" x2="115" y2="20" stroke="#FFD700" stroke-width="1.5" stroke-dasharray="3 3" marker-end="url(#arrow)"/>`,
+    slalom: `${court}${[40,70,100,130,160].map((x,i)=>`<circle cx="${x}" cy="60" r="3" fill="#C41E3A"/>`).join('')}
+      <path d="M20 60 Q 40 40 70 60 Q 100 80 130 60 Q 160 40 180 60" fill="none" stroke="#1B4EA8" stroke-width="1.5" stroke-dasharray="3 3" marker-end="url(#arrow)"/>`,
+    threeVtwo: `${court}<circle cx="30" cy="30" r="5" fill="#1B4EA8"/><circle cx="30" cy="70" r="5" fill="#1B4EA8"/><circle cx="20" cy="50" r="5" fill="#1B4EA8"/>
+      <circle cx="120" cy="40" r="5" fill="#C41E3A"/><circle cx="120" cy="65" r="5" fill="#C41E3A"/>
+      <line x1="20" y1="50" x2="30" y2="30" stroke="#FFD700" stroke-width="1" stroke-dasharray="2 3" marker-end="url(#arrow)"/>
+      <line x1="30" y1="30" x2="170" y2="30" stroke="#FFD700" stroke-width="1" stroke-dasharray="2 3" marker-end="url(#arrow)"/>`,
+    ladder: `<rect x="20" y="40" width="160" height="20" fill="none" stroke="#1B4EA8" stroke-width="2"/>
+      ${[40,60,80,100,120,140,160].map(x=>`<line x1="${x}" y1="40" x2="${x}" y2="60" stroke="#1B4EA8" stroke-width="1.5"/>`).join('')}
+      <circle cx="30" cy="50" r="4" fill="#C41E3A"/>`,
+    counter: `${court}<circle cx="30" cy="90" r="5" fill="#1B4EA8"/>
+      <path d="M30 90 L 170 20" fill="none" stroke="#C41E3A" stroke-width="1.5" stroke-dasharray="3 3" marker-end="url(#arrow)"/>
+      <circle cx="170" cy="20" r="5" fill="#FFD700"/>`
+  };
+  return `<svg viewBox="0 0 200 120" xmlns="http://www.w3.org/2000/svg" style="width:100%; background:#0F2E63; border-radius:8px;">
+    <defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#FFD700"/></marker></defs>
+    ${diagrams[type] || court}
+  </svg>`;
+}
+
+function getExerciseDiagramDataUrl(){
+  const ex = EXERCISE_LIBRARY.find(e=>e.id===state.selectedExerciseId);
+  if(!ex) return null;
+  const svg = renderExerciseDiagramSVG(ex.diagram);
+  return 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
+}
+
+function selectExercise(id){
+  const ex = EXERCISE_LIBRARY.find(e=>e.id===id);
+  if(!ex) return;
+  state.selectedExerciseId = id;
+  state.genDetails = `${ex.nom} (${ex.categorie}) : ${ex.description}`;
+  render();
+}
+
+const ESSONNE_CLUBS = [
+  "AS St Germain les Arpajon","AS Villebon-Longjumeau","Ballancourt Val d'Essonne HB","Bondoufle AC",
+  "CO Crosne","CO Les Ulis","Draveil Handball","ES Brunoy","ES Montgeron","ES Viry-Châtillon",
+  "Epinay-Villemoisson HBC","Gif HBC","H Mennecy VE","HB Etampois","HBC Coudraysien","HBC Dourdan",
+  "HBC Limours","HBC Lisses","HBC Val de Seine","Massy Essonne Handball","Morsang-Fleury HB",
+  "Olympique Vigneux Handball","Portes de l'Essonne HB","SCA 2000 Evry","Savigny HB 91",
+  "St Michel Sports Handball","Ste Geneviève Sports Handball","TU Verrières-le-Buisson Handball",
+  "US Grigny Handball","US Palaiseau","US Ris-Orangis","USO Athis-Mons","Val d'Yerres HB",
+  "AS Marcoussis Handball","Crystal Handball Club","Handball Club de Boussy-Saint-Antoine",
+  "Handball Club Villabé","Club de Handball Angerville","Autre club (préciser)"
+];
+
+const MONTHS = ["janvier","février","mars","avril","mai","juin","juillet","août","septembre","octobre","novembre","décembre"];
+const DOW = ["L","M","M","J","V","S","D"];
+const CHANNEL_META = {
+  facebook:{ label:"Facebook", dot:"dot-fb", cls:"fb" },
+  instagram:{ label:"Instagram", dot:"dot-ig", cls:"ig" },
+  whatsapp:{ label:"WhatsApp", dot:"dot-wa", cls:"wa" },
+  site:{ label:"Site web", dot:"dot-site", cls:"site" },
+  newsletter:{ label:"Newsletter", dot:"dot-nl", cls:"nl" }
+};
+const POST_CHANNELS = ["facebook","instagram","whatsapp","site"];
+const STATUS = ["idee","brouillon","pret","publie"];
+const STATUS_LABEL = { idee:"Idée", brouillon:"Brouillon", pret:"Prêt", publie:"Publié" };
+
+let state = {
+  tab: "calendar",
+  items: [],
+  history: [],
+  images: [],
+  kpi: {},
+  ffLinks: [],
+  lastBackupAt: null,
+  playersList: [],
+  posterBrief: { titre:"", typeEvenement:"", infos:"", style:"Sportif, dynamique, couleurs du club (bleu royal, rouge, or)", format:"Affiche A4 (portrait)" },
+  makeWebhookUrl: "",
+  publishStatus: null,
+  viewDate: new Date(),
+  calView: "month",
+  listStatusFilter: "idee",
+  listMonthFilter: "all",
+  listSelection: [],
+  modalOpen: false,
+  editingItem: null,
+  modalDate: null,
+  modalIdeaLoading: false,
+  modalGenLoading: false,
+
+  ideasModalOpen: false,
+  ideasLoading: false,
+  ideasError: null,
+  ideasResults: null,
+
+  historyOpen: false,
+  kpiOpen: false,
+  ffLinksOpen: false,
+
+  genMode: "post",
+
+  genPreset: null,
+  genChannels: {facebook:true, instagram:true, whatsapp:false},
+  genDetails: "",
+  genSelectedImageId: null,
+  genLoading: false,
+  genResults: null,
+  genError: null,
+  resultsFontSize: 14,
+  imageUploadName: "",
+  imageUploadCategory: "resultats",
+
+  genQueue: [],
+  selectedExerciseId: null,
+  exerciseFilters: { categorie: "all", poste: "all", type: "all" },
+  batchLoading: false,
+  batchProgress: null,
+  batchResults: null,
+  batchError: null,
+
+  eivhbLogo: null,
+  opponentLogos: {},
+  matchBuilder: { categorie: TEAM_CATEGORIES[0], adversaire: "", adversaireAutre: "", score: "", date: "", heure: "", lieu: "", domicile: true },
+  matchBuilderList: [],
+  matchVisual: { background: null, format: "square", bgX: 50, bgY: 50 },
+  visualCaptionChannel: null,
+  visualPages: [],
+  visualPageIndex: 0,
+  visualStyle: { titleSize: 70, bodySize: 32 },
+  visualExtraPhotos: [],
+  genericVisualTitle: "",
+  genericInfoList: [],
+  genericInfoInput: "",
+
+  nl: {
+    contexte: "",
+    resultatsBrut: "",
+    matchsBrut: "",
+    evenementSpecial: "",
+    saviezVous: "",
+    portraitBrut: "",
+    coupDeMain: "",
+    partenaireDuMois: "",
+    agendaSuivant: "",
+    sondage: ""
+  },
+  nlLoading: false,
+  nlError: null,
+  nlResults: null,
+  nlEditedSections: {},
+  nlSectionRegenLoading: null,
+  nlMonth: monthKey(new Date()),
+  nlDrafts: {},
+};
+
+async function loadAll(){
+  try{ const r = await storageGet('content-items'); state.items = r ? JSON.parse(r.value) : []; }catch(e){ state.items = []; }
+  try{ const r = await storageGet('generation-history'); state.history = r ? JSON.parse(r.value) : []; }catch(e){ state.history = []; }
+  try{ const r = await storageGet('club-images'); state.images = r ? JSON.parse(r.value) : []; }catch(e){ state.images = []; }
+  try{ const r = await storageGet('kpi-data'); state.kpi = r ? JSON.parse(r.value) : {}; }catch(e){ state.kpi = {}; }
+  try{
+    const r = await storageGet('ff-links');
+    state.ffLinks = r ? JSON.parse(r.value) : [
+      { id:'ffl_default', label:"-18M Essonne", url:"https://www.ffhandball.fr/competitions/saison-2025-2026-21/departemental/18m-essonne-28775/poule-177107/" }
+    ];
+    if(!r) saveFfLinks();
+  }catch(e){ state.ffLinks = []; }
+  try{ const r = await storageGet('last-backup-at'); state.lastBackupAt = r ? r.value : null; }catch(e){ state.lastBackupAt = null; }
+  try{ const r = await storageGet('players-list'); state.playersList = r ? JSON.parse(r.value) : []; }catch(e){ state.playersList = []; }
+  try{ const r = await storageGet('make-webhook-url'); state.makeWebhookUrl = r ? r.value : ''; }catch(e){ state.makeWebhookUrl = ''; }
+  try{ const r = await storageGet('eivhb-logo'); state.eivhbLogo = r ? JSON.parse(r.value) : null; }catch(e){ state.eivhbLogo = null; }
+  try{ const r = await storageGet('opponent-logos'); state.opponentLogos = r ? JSON.parse(r.value) : {}; }catch(e){ state.opponentLogos = {}; }
+  try{ const r = await storageGet('newsletter-drafts'); state.nlDrafts = r ? JSON.parse(r.value) : {}; }catch(e){ state.nlDrafts = {}; }
+  if(state.nlDrafts[state.nlMonth]) loadNlDraft(state.nlMonth);
+  render();
+}
+async function saveItems(){ try{ await storageSet('content-items', JSON.stringify(state.items)); }catch(e){ console.error(e); } }
+async function saveHistory(){ try{ await storageSet('generation-history', JSON.stringify(state.history)); }catch(e){ console.error(e); } }
+async function saveImages(){ try{ await storageSet('club-images', JSON.stringify(state.images)); }catch(e){ console.error('Stockage image échoué (fichier trop volumineux ?)', e); } }
+async function saveKpi(){ try{ await storageSet('kpi-data', JSON.stringify(state.kpi)); }catch(e){ console.error(e); } }
+
+async function saveFfLinks(){ try{ await storageSet('ff-links', JSON.stringify(state.ffLinks)); }catch(e){ console.error(e); } }
+
+async function savePlayersList(){ try{ await storageSet('players-list', JSON.stringify(state.playersList)); }catch(e){ console.error(e); } }
+
+function saveMakeWebhookUrl(){
+  const el = document.getElementById('make-webhook-input');
+  if(!el) return;
+  state.makeWebhookUrl = el.value.trim();
+  try{ storageSet('make-webhook-url', state.makeWebhookUrl); }catch(e){ console.error(e); }
+  alert(state.makeWebhookUrl ? "URL enregistrée." : "URL vidée.");
+  render();
+}
+
+async function publishViaWebhook(channel){
+  if(!state.makeWebhookUrl){
+    alert("Configure d'abord ton URL de webhook Make dans l'onglet \"Affiches Canva\" (section Publication automatique).");
+    return;
+  }
+  const text = getFinalChannelText(state.genResults, channel);
+  let image = null;
+  if(state.visualPages && state.visualPages.length) image = state.visualPages[0];
+  else if(state.genSelectedImageId){ const img = state.images.find(i=>i.id===state.genSelectedImageId); if(img) image = img.dataUrl; }
+
+  const payload = { channel, texte: text, titre: state.genPreset || '', image, date: todayStr() };
+  state.publishStatus = 'loading'; render();
+  try{
+    const res = await fetch(state.makeWebhookUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    state.publishStatus = res.ok ? 'success' : 'error';
+  }catch(e){
+    console.error(e);
+    state.publishStatus = 'error';
+  }
+  render();
+  setTimeout(()=>{ state.publishStatus = null; render(); }, 4000);
+}
+
+function parseExcelDate(val){
+  if(val === undefined || val === null || val === '') return null;
+  if(typeof val === 'number'){
+    const d = XLSX.SSF.parse_date_code(val);
+    if(!d) return null;
+    return new Date(d.y, d.m-1, d.d);
+  }
+  const s = String(val).trim();
+  let m = s.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})$/);
+  if(m){ let y = parseInt(m[3],10); if(y<100) y+=2000; return new Date(y, parseInt(m[2],10)-1, parseInt(m[1],10)); }
+  const d2 = new Date(s);
+  return isNaN(d2.getTime()) ? null : d2;
+}
+
+function handlePlayersExcelFile(e){
+  const file = e.target.files[0];
+  if(!file) return;
+  if(typeof XLSX === 'undefined'){ alert("La librairie de lecture Excel n'a pas pu se charger. Vérifie ta connexion et réessaie."); return; }
+  const reader = new FileReader();
+  reader.onload = (ev)=>{
+    try{
+      const wb = XLSX.read(ev.target.result, { type:'binary', cellDates:false });
+      const sheet = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(sheet, { defval:'' });
+      const players = [];
+      rows.forEach(row=>{
+        const keys = Object.keys(row);
+        const prenomKey = keys.find(k=>/pr[eé]nom|nom/i.test(k)) || keys[0];
+        const dateKey = keys.find(k=>/date|naissance|né/i.test(k)) || keys[1];
+        const prenom = String(row[prenomKey]||'').trim();
+        const dateVal = parseExcelDate(row[dateKey]);
+        if(prenom && dateVal) players.push({ prenom, date: fmtDate(dateVal) });
+      });
+      if(players.length===0){ alert("Aucune ligne valide trouvée. Vérifie que le fichier a bien une colonne prénom et une colonne date de naissance."); return; }
+      state.playersList = players;
+      savePlayersList();
+      render();
+      alert(`${players.length} licencié(s) importé(s) avec succès.`);
+    }catch(err){
+      console.error(err);
+      alert("Impossible de lire ce fichier. Vérifie que c'est bien un fichier Excel (.xlsx).");
+    }
+  };
+  reader.readAsBinaryString(file);
+}
+
+function getBirthdaysForMonth(mk){
+  const [, m] = mk.split('-');
+  const monthNum = parseInt(m,10);
+  return state.playersList.filter(p=>{
+    const d = new Date(p.date);
+    return (d.getMonth()+1) === monthNum;
+  }).sort((a,b)=> new Date(a.date).getDate() - new Date(b.date).getDate());
+}
+function addFfLink(){
+  const labelEl = document.getElementById('ffl-label-input');
+  const urlEl = document.getElementById('ffl-url-input');
+  const label = labelEl ? labelEl.value.trim() : '';
+  const url = urlEl ? urlEl.value.trim() : '';
+  if(!label || !url){ alert("Renseigne un nom et un lien."); return; }
+  state.ffLinks.push({ id:'ffl_'+Date.now(), label, url });
+  saveFfLinks();
+  render();
+}
+function removeFfLink(id){
+  state.ffLinks = state.ffLinks.filter(l=>l.id!==id);
+  saveFfLinks();
+  render();
+}
+function renderFfLinksPanel(){
+  return `
+    <div class="upload-row">
+      <div><label>Nom (ex. -18M Essonne)</label><input type="text" id="ffl-label-input" placeholder="Nom de la poule/équipe"></div>
+      <div><label>Lien FFHandball</label><input type="text" id="ffl-url-input" placeholder="https://www.ffhandball.fr/..."></div>
+    </div>
+    <button class="btn btn-sm" onclick="addFfLink()">+ Ajouter ce lien</button>
+    <div style="margin-top:10px; display:flex; flex-direction:column; gap:6px;">
+      ${state.ffLinks.map(l=>`<div class="history-item" style="cursor:default; display:flex; justify-content:space-between; align-items:center;">
+        <a href="${escapeHtml(l.url)}" target="_blank" rel="noopener" style="font-weight:600; font-size:13.5px; color:var(--blue);">${escapeHtml(l.label)} ↗</a>
+        <button class="btn-ghost btn-sm" onclick="removeFfLink('${l.id}')">Retirer</button>
+      </div>`).join('') || `<div class="hint">Aucun lien enregistré.</div>`}
+    </div>
+    <div class="hint" style="margin-top:8px;">Un clic ouvre directement la page de résultats/calendrier de la fédération pour cette équipe.</div>
+  `;
+}
+async function saveEivhbLogo(){ try{ await storageSet('eivhb-logo', JSON.stringify(state.eivhbLogo)); }catch(e){ console.error(e); } }
+async function saveOpponentLogos(){ try{ await storageSet('opponent-logos', JSON.stringify(state.opponentLogos)); }catch(e){ console.error(e); } }
+
+const EMPTY_NL = { contexte:"", resultatsBrut:"", matchsBrut:"", evenementSpecial:"", saviezVous:"", portraitBrut:"", coupDeMain:"", partenaireDuMois:"", agendaSuivant:"", sondage:"" };
+
+async function saveNlDraft(mk){
+  state.nlDrafts[mk] = { nl: {...state.nl}, nlResults: state.nlResults, nlEditedSections: {...state.nlEditedSections} };
+  try{ await storageSet('newsletter-drafts', JSON.stringify(state.nlDrafts)); }catch(e){ console.error(e); }
+}
+function loadNlDraft(mk){
+  const draft = state.nlDrafts[mk];
+  if(draft){
+    state.nl = { ...EMPTY_NL, ...draft.nl };
+    state.nlResults = draft.nlResults || null;
+    state.nlEditedSections = draft.nlEditedSections || {};
+  } else {
+    state.nl = { ...EMPTY_NL };
+    state.nlResults = null;
+    state.nlEditedSections = {};
+  }
+}
+function switchNlMonth(mk){
+  saveNlDraft(state.nlMonth);
+  state.nlMonth = mk;
+  loadNlDraft(mk);
+  render();
+}
+function clearNlField(field){
+  state.nl[field] = '';
+  render();
+}
+
+function fmtDate(d){ return d.toISOString().slice(0,10); }
+function sanitizeJsonText(text){
+  let out = '';
+  let inString = false;
+  let escaped = false;
+  for(let i=0;i<text.length;i++){
+    const ch = text[i];
+    if(inString){
+      if(escaped){ out += ch; escaped = false; continue; }
+      if(ch === '\\'){ out += ch; escaped = true; continue; }
+      if(ch === '\n'){ out += '\\n'; continue; }
+      if(ch === '\r'){ out += '\\r'; continue; }
+      if(ch === '\t'){ out += '\\t'; continue; }
+      if(ch === '"'){
+        let j = i+1;
+        while(j<text.length && /\s/.test(text[j])) j++;
+        const nextCh = text[j];
+        if(nextCh === undefined || nextCh === ',' || nextCh === '}' || nextCh === ']' || nextCh === ':'){
+          out += ch;
+          inString = false;
+        } else {
+          out += '\\"';
+        }
+        continue;
+      }
+      out += ch;
+    } else {
+      if(ch === '"'){ inString = true; out += ch; continue; }
+      out += ch;
+    }
+  }
+  out = out.replace(/,(\s*[}\]])/g, '$1');
+  return out;
+}
+
+function parseAIJson(rawText){
+  let clean = rawText.trim().replace(/^```json/,'').replace(/^```/,'').replace(/```$/,'').trim();
+  try{
+    return JSON.parse(clean);
+  }catch(e){
+    try{
+      return JSON.parse(sanitizeJsonText(clean));
+    }catch(e2){
+      console.error('JSON repair failed', e2, clean);
+      throw e2;
+    }
+  }
+}
+
+function getFinalChannelText(resultsObj, channel){
+  const obj = resultsObj && resultsObj[channel];
+  if(!obj) return '';
+  if(obj._edited !== undefined) return obj._edited;
+  if(channel==='facebook') return (obj.texte||'') + (obj.hashtags && obj.hashtags.length ? '\n\n'+obj.hashtags.join(' ') : '');
+  if(channel==='instagram') return (obj.accroche?obj.accroche+'\n\n':'') + (obj.legende||'') + (obj.hashtags && obj.hashtags.length ? '\n\n'+obj.hashtags.join(' ') : '') + (obj.idee_story?'\n\nIdée story : '+obj.idee_story:'');
+  if(channel==='whatsapp') return obj.texte||'';
+  if(channel==='site') return (obj.titre?obj.titre+'\n\n':'') + (obj.texte||'');
+  return '';
+}
+
+function todayStr(){ return fmtDate(new Date()); }
+function escapeHtml(s){ const d=document.createElement('div'); d.textContent=s||''; return d.innerHTML; }
+function dotColor(ch){
+  if(ch==='facebook') return 'var(--blue)';
+  if(ch==='instagram') return 'var(--red)';
+  if(ch==='whatsapp') return '#1DA851';
+  if(ch==='site') return '#7A5AF8';
+  if(ch==='newsletter') return 'var(--blue-darker)';
+  return 'var(--blue-darker)';
+}
+
+/* ===== calendar item modal ===== */
+function openModal(dateStr, item){
+  state.modalOpen = true; state.modalDate = dateStr;
+  if(item){
+    const clone = {...item};
+    if(!clone.content) clone.content = clone.title;
+    if(clone.includeInNewsletter === undefined) clone.includeInNewsletter = false;
+    state.editingItem = clone;
+  } else {
+    state.editingItem = { id: null, date: dateStr, title:"", channels:["facebook"], status:"idee", content:"", includeInNewsletter: false };
+  }
+  render();
+}
+function closeModal(){ state.modalOpen = false; state.editingItem = null; render(); }
+function saveModalItem(){
+  const it = state.editingItem;
+  if(!it.title || !it.title.trim()) return;
+  if(it.id){ const idx = state.items.findIndex(x=>x.id===it.id); state.items[idx] = it; }
+  else { it.id = 'item_' + Date.now() + '_' + Math.floor(Math.random()*1000); state.items.push(it); }
+  saveItems(); closeModal();
+}
+function deleteModalItem(){
+  if(state.editingItem && state.editingItem.id){ state.items = state.items.filter(x=>x.id!==state.editingItem.id); saveItems(); }
+  closeModal();
+}
+function duplicateModalItem(){
+  const it = state.editingItem;
+  if(!it || !it.id) return;
+  const clone = {...it, id: 'item_' + Date.now() + '_' + Math.floor(Math.random()*1000), status:'idee'};
+  state.items.push(clone);
+  saveItems();
+  state.editingItem = clone;
+  render();
+}
+function toggleChannel(ch){
+  const it = state.editingItem;
+  if(it.channels.includes(ch)) it.channels = it.channels.filter(c=>c!==ch);
+  else it.channels = [...it.channels, ch];
+  render();
+}
+
+function changeMonth(delta){ const d = new Date(state.viewDate); d.setMonth(d.getMonth()+delta); state.viewDate = d; render(); }
+
+function buildCalendarDays(viewDate){
+  const year = viewDate.getFullYear(); const month = viewDate.getMonth();
+  const firstOfMonth = new Date(year, month, 1);
+  let startOffset = firstOfMonth.getDay() - 1; if(startOffset < 0) startOffset = 6;
+  const gridStart = new Date(year, month, 1 - startOffset);
+  const days = [];
+  for(let i=0;i<42;i++){ const d = new Date(gridStart); d.setDate(gridStart.getDate()+i); days.push(d); }
+  return days;
+}
+
+function monthKey(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'); }
+function getKpiForMonth(key){
+  return state.kpi[key] || { portee:'', interactions:'', abonnes:'', clics:'', licencies:'', participation:'' };
+}
+function exportSeasonReport(){
+  const months = Object.keys(state.kpi).sort();
+  if(months.length===0){
+    alert("Aucun indicateur mensuel enregistré pour l'instant. Renseigne au moins un mois avant d'exporter le bilan.");
+    return;
+  }
+  const numFields = ['portee','interactions','abonnes','clics','licencies','participation'];
+  const rows = [["Mois","Publications","Portée","Interactions","Nouveaux abonnés","Clics","Licenciés recrutés","Participation événements"]];
+  const totals = {portee:0, interactions:0, abonnes:0, clics:0, licencies:0, participation:0};
+  months.forEach(mk=>{
+    const [y,m] = mk.split('-');
+    const label = MONTHS[parseInt(m,10)-1] + ' ' + y;
+    const k = state.kpi[mk];
+    const pubCount = state.items.filter(it=>{ const d=new Date(it.date); return monthKey(d)===mk && it.status==='publie'; }).length;
+    numFields.forEach(f=>{ totals[f] += parseInt(k[f],10) || 0; });
+    rows.push([label, pubCount, k.portee||0, k.interactions||0, k.abonnes||0, k.clics||0, k.licencies||0, k.participation||0]);
+  });
+  rows.push(["TOTAL SAISON", "", totals.portee, totals.interactions, totals.abonnes, totals.clics, totals.licencies, totals.participation]);
+
+  const csv = '\uFEFF' + rows.map(r=>r.map(csvEscape).join(',')).join('\r\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `bilan-saison-eivhb-${todayStr()}.csv`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function saveKpiForMonth(){
+  const key = monthKey(state.viewDate);
+  const read = (id)=>{ const el = document.getElementById(id); return el ? el.value : ''; };
+  state.kpi[key] = {
+    portee: read('kpi-portee'),
+    interactions: read('kpi-interactions'),
+    abonnes: read('kpi-abonnes'),
+    clics: read('kpi-clics'),
+    licencies: read('kpi-licencies'),
+    participation: read('kpi-participation')
+  };
+  saveKpi();
+  const btn = document.getElementById('kpi-save-btn');
+  if(btn){ const old = btn.textContent; btn.textContent = 'Enregistré'; setTimeout(()=>{ btn.textContent = old; }, 1400); }
+}
+
+function exportAllData(){
+  const payload = {
+    exported_at: new Date().toISOString(),
+    items: state.items,
+    history: state.history,
+    images: state.images,
+    kpi: state.kpi
+  };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `eivhb-com-sauvegarde-${todayStr()}.json`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  state.lastBackupAt = new Date().toISOString();
+  try{ storageSet('last-backup-at', state.lastBackupAt); }catch(e){ console.error(e); }
+  render();
+}
+
+function triggerImportFile(){ document.getElementById('import-file-input').click(); }
+
+function handleImportFile(e){
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(ev){
+    try{
+      const data = JSON.parse(ev.target.result);
+      const ok = confirm("Restaurer cette sauvegarde va remplacer toutes les données actuelles (calendrier, historique, visuels, KPI). Continuer ?");
+      if(!ok) return;
+      state.items = data.items || [];
+      state.history = data.history || [];
+      state.images = data.images || [];
+      state.kpi = data.kpi || {};
+      saveItems(); saveHistory(); saveImages(); saveKpi();
+      render();
+    }catch(err){
+      alert("Fichier de sauvegarde invalide ou illisible.");
+      console.error(err);
+    }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+}
+
+/* ===== AI ideas for the month ===== */
+async function generateIdeas(){
+  state.ideasLoading = true; state.ideasError = null; state.ideasResults = null; render();
+  const month = state.viewDate.getMonth();
+  const year = state.viewDate.getFullYear();
+  const monthLabel = MONTHS[month] + ' ' + year;
+  const existing = state.items.filter(it=>{ const d=new Date(it.date); return d.getMonth()===month && d.getFullYear()===year; }).map(it=>it.title);
+
+  const systemPrompt = `Tu es le community manager du club de handball amateur ${CLUB.nom} (${CLUB.sigle}), ${CLUB.villes}. Valeurs : ${CLUB.valeurs}. Ton : ${CLUB.ton}.
+Réponds UNIQUEMENT avec un objet JSON valide, sans texte avant/après, sans markdown, au format :
+{"ideas": [{"titre":"...", "type":"ex. portrait / recrutement / résultats / partenaire / événement", "jour_du_mois": 12, "canaux":["facebook","instagram"], "idee_visuel":"courte description du visuel/photo à utiliser", "hashtags":["#..","#.."]}]}`;
+  const userPrompt = `Propose 8 idées de publications concrètes et variées pour le mois de ${monthLabel} pour un club de handball amateur.
+Contenus déjà prévus ce mois-ci (à ne pas répéter) : ${existing.length ? existing.join(', ') : 'aucun pour le moment'}.
+Varie les types de contenu (vie du club, recrutement, partenaires, bénévoles, technique, événementiel) et répartis les jours du mois de façon réaliste.
+Le "titre" ne doit JAMAIS contenir de hashtag ni de description de visuel — utilise uniquement les champs séparés "idee_visuel" et "hashtags" pour ça.`;
+
+  try{
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1200, system: systemPrompt, messages: [{ role:"user", content:userPrompt }] })
+    });
+    const data = await response.json();
+    const textBlock = (data.content||[]).find(b=>b.type==='text');
+    if(!textBlock) throw new Error('no text');
+    let clean = textBlock.text;
+    const parsed = parseAIJson(clean);
+    state.ideasResults = parsed.ideas || [];
+  }catch(e){
+    state.ideasError = "La génération d'idées a échoué. Réessaie.";
+    console.error(e);
+  }
+  state.ideasLoading = false; render();
+}
+
+function addIdeaToCalendar(idx){
+  const idea = state.ideasResults[idx];
+  const month = state.viewDate.getMonth(); const year = state.viewDate.getFullYear();
+  let day = Math.min(Math.max(parseInt(idea.jour_du_mois)||1,1), new Date(year, month+1, 0).getDate());
+  const date = new Date(year, month, day);
+  const item = {
+    id: 'item_' + Date.now() + '_' + Math.floor(Math.random()*1000),
+    date: fmtDate(date),
+    title: idea.titre,
+    channels: (idea.canaux && idea.canaux.length) ? idea.canaux : ['facebook'],
+    status: 'idee',
+    visualIdea: idea.idee_visuel || '',
+    hashtags: (idea.hashtags && idea.hashtags.length) ? idea.hashtags.join(' ') : '',
+    includeInNewsletter: false
+  };
+  state.items.push(item); saveItems();
+  idea.added = true;
+  render();
+}
+
+function openIdeasModal(){ state.ideasModalOpen = true; state.ideasResults = null; state.ideasError = null; render(); generateIdeas(); }
+function closeIdeasModal(){ state.ideasModalOpen = false; render(); }
+
+/* ===== export month planning ===== */
+function csvEscape(v){
+  const s = (v===undefined || v===null) ? '' : String(v);
+  if(/[",\n]/.test(s)) return '"' + s.replace(/"/g,'""') + '"';
+  return s;
+}
+
+function suggestVisualIdea(it){
+  const t = (it.title||'').toLowerCase();
+  if(/match|résultat|resultat|score|calendrier/.test(t)) return "Photo de match";
+  if(/entraînement|entrainement|technique|exercice/.test(t)) return "Photo d'entraînement";
+  if(/recrutement|inscription|forum/.test(t)) return "Photo d'inscription / forum";
+  if(/anniversaire/.test(t)) return "Photo souvenir / groupe";
+  if(/bénévole|benevole|remerciement|coup de main/.test(t)) return "Photo des bénévoles";
+  if(/partenaire/.test(t)) return "Logo du partenaire";
+  if(/portrait/.test(t)) return "Portrait individuel";
+  if(/défi|defi|jeu|quiz/.test(t)) return "Visuel ludique / graphique";
+  if(/événement|evenement|loto|galette|assemblée|assemblee/.test(t)) return "Photo de l'événement";
+  return "";
+}
+
+function exportMonthPlanningSheet(){
+  const month = state.viewDate.getMonth(); const year = state.viewDate.getFullYear();
+  const items = state.items.filter(it=>{ const d=new Date(it.date); return d.getMonth()===month && d.getFullYear()===year; })
+    .sort((a,b)=>a.date.localeCompare(b.date));
+
+  const rows = [["Date du post","Titre","Canaux","Contenu","Idée de visuel","Hashtags","Statut"]];
+  items.forEach(it=>{
+    const d = new Date(it.date);
+    const dateStr = String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0')+'/'+d.getFullYear();
+    const canaux = (it.channels||[]).map(c=>CHANNEL_META[c]?.label||c).join(', ');
+    const hashtags = it.hashtags || ((it.content||'').match(/#[\wÀ-ÿ]+/g) || []).join(' ');
+    const contenuBrut = (it.content && it.content.trim() !== (it.title||'').trim()) ? it.content : '';
+    const contenu = contenuBrut.replace(/#[\wÀ-ÿ]+/g, '').replace(/\n{3,}/g,'\n\n').trim();
+    const img = it.imageId ? state.images.find(i=>i.id===it.imageId) : null;
+    const idee_visuel = it.visualIdea || (img ? img.name : suggestVisualIdea(it));
+    const statut = STATUS_LABEL[it.status] || it.status;
+    rows.push([dateStr, it.title, canaux, contenu, idee_visuel, hashtags, statut]);
+  });
+
+  const csv = '\uFEFF' + rows.map(r=>r.map(csvEscape).join(',')).join('\r\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `planning-eivhb-${MONTHS[month]}-${year}.csv`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function exportMonthPlanning(){
+  const month = state.viewDate.getMonth(); const year = state.viewDate.getFullYear();
+  const monthLabel = MONTHS[month] + ' ' + year;
+  const items = state.items.filter(it=>{ const d=new Date(it.date); return d.getMonth()===month && d.getFullYear()===year; })
+    .sort((a,b)=>a.date.localeCompare(b.date));
+  let md = `# Planning de communication EIVHB — ${monthLabel}\n\n`;
+  if(items.length===0){ md += "Aucun contenu prévu ce mois-ci.\n"; }
+  else{
+    items.forEach(it=>{
+      const d = new Date(it.date);
+      const dateStr = d.toLocaleDateString('fr-FR', { weekday:'long', day:'numeric', month:'long' });
+      md += `- **${dateStr}** — ${it.title} _(${it.channels.map(c=>CHANNEL_META[c]?.label||c).join(', ')} · ${STATUS_LABEL[it.status]})_\n`;
+    });
+  }
+  const blob = new Blob([md], { type: 'text/markdown' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `planning-eivhb-${MONTHS[month]}-${year}.md`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+/* ===== images ===== */
+function handleImageFile(e){
+  const file = e.target.files[0];
+  if(!file) return;
+  if(file.size > 4*1024*1024){ alert("Image trop lourde (max ~4 Mo). Compresse-la avant import."); return; }
+  const reader = new FileReader();
+  reader.onload = function(ev){
+    const img = { id: 'img_'+Date.now(), name: state.imageUploadName || file.name, category: state.imageUploadCategory, dataUrl: ev.target.result };
+    state.images.push(img);
+    saveImages();
+    state.imageUploadName = "";
+    render();
+  };
+  reader.readAsDataURL(file);
+}
+function deleteImage(id){
+  state.images = state.images.filter(i=>i.id!==id);
+  if(state.genSelectedImageId===id) state.genSelectedImageId = null;
+  saveImages(); render();
+}
+function selectGenImage(id){
+  state.genSelectedImageId = (state.genSelectedImageId===id) ? null : id;
+  render();
+}
+
+/* ===== generation ===== */
+function buildPostPrompts(preset, channels, details){
+  const channelInstructions = channels.map(c=>{
+    if(c==='facebook') return `"facebook": {"texte": "post complet avec sauts de ligne", "hashtags": ["#..."], "cta": "..."}`;
+    if(c==='instagram') return `"instagram": {"accroche": "1re ligne courte", "legende": "légende complète", "hashtags": ["#..."], "idee_story": "..."}`;
+    if(c==='whatsapp') return `"whatsapp": {"texte": "moins de 300 caractères, avec emoji titre et CTA"}`;
+    if(c==='site') return `"site": {"titre": "titre d'article", "texte": "article complet pour la page actualités du site club, plus détaillé et informatif qu'un post réseau social, 3 à 6 phrases", "meta_description": "résumé en une phrase pour le référencement"}`;
+  }).join(',\n');
+
+  const systemPrompt = `Tu es le community manager du club de handball amateur ${CLUB.nom} (${CLUB.sigle}), basé à ${CLUB.villes}, gymnase ${CLUB.gymnase}.
+Identité du club : couleurs ${CLUB.couleurs}. Valeurs : ${CLUB.valeurs}. Ton : ${CLUB.ton}.
+Tu rédiges du contenu prêt à publier pour un club amateur familial, jamais générique ni corporate.
+Réponds UNIQUEMENT avec un objet JSON valide, sans texte avant ni après, sans balises markdown, au format exact suivant :
+{
+${channelInstructions}
+}`;
+  const multiMatchHint = preset === "Calendrier des matchs (semaine)"
+    ? "\nLes détails listent probablement plusieurs matchs (une ligne par match : catégorie, adversaire, date, heure, lieu, domicile/extérieur). Structure le texte pour lister chaque match clairement (catégorie en gras ou en majuscule, puis infos), sans en oublier aucun."
+    : "";
+  const resultatsHint = preset === "Résultats du week-end"
+    ? "\nLes détails listent probablement plusieurs matchs avec leur score (une ligne par match : catégorie, adversaire, score, date, lieu, domicile/extérieur). Reprends chaque résultat sans en oublier aucun, en signalant clairement victoire/nul/défaite selon le score."
+    : "";
+  const conseilDuMoisHint = preset === "Conseil du mois"
+    ? "\nCe n'est pas un conseil technique d'entraînement : vise un thème plus large utile aux familles et licenciés (hydratation, sommeil, alimentation, préparation mentale, sécurité, matériel, vie de club, règlement...). Choisis un thème pertinent si aucun n'est précisé dans les détails."
+    : "";
+  const defiHint = preset === "Défi / Jeu / Quiz handball"
+    ? "\nPropose un contenu interactif et engageant : un défi à relever, un mini-jeu, ou un quiz avec une question à choix (ex. règle du hand, anecdote du club, chiffre) et sa réponse. Donne envie de commenter ou de répondre en story."
+    : "";
+  const userPrompt = `Type de contenu : ${preset}
+Détails fournis par la responsable communication : ${details || "(aucun détail supplémentaire, improvise de façon plausible et générique pour un club de handball amateur)"}${multiMatchHint}${resultatsHint}${conseilDuMoisHint}${defiHint}`;
+
+  return { systemPrompt, userPrompt };
+}
+
+async function callGenerateAPI(preset, channels, details){
+  const { systemPrompt, userPrompt } = buildPostPrompts(preset, channels, details);
+  const response = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1000, system: systemPrompt, messages: [{ role:"user", content:userPrompt }] })
+  });
+  const data = await response.json();
+  const textBlock = (data.content||[]).find(b=>b.type==='text');
+  if(!textBlock) throw new Error("Pas de réponse texte");
+  return parseAIJson(textBlock.text);
+}
+
+async function generateContent(){
+  if(!state.genPreset){ state.genError = "Choisis un type de contenu."; render(); return; }
+  const channels = Object.keys(state.genChannels).filter(c=>state.genChannels[c]);
+  if(channels.length===0){ state.genError = "Sélectionne au moins un canal."; render(); return; }
+
+  state.genLoading = true; state.genError = null; state.genResults = null; state.visualCaptionChannel = null; render();
+
+  let parsed = null;
+  try{
+    parsed = await callGenerateAPI(state.genPreset, channels, state.genDetails);
+    state.genResults = parsed;
+  }catch(e){
+    state.genError = "La génération a échoué. Réessaie, ou reformule les détails.";
+    console.error(e);
+  }
+  state.genLoading = false;
+
+  if(parsed){
+    const entry = {
+      id: 'hist_' + Date.now(),
+      timestamp: new Date().toISOString(),
+      preset: state.genPreset,
+      channels: channels,
+      details: state.genDetails,
+      results: parsed,
+      imageId: state.genSelectedImageId || null
+    };
+    state.history.unshift(entry);
+    saveHistory();
+  }
+  render();
+}
+
+function suggestAgendaFromCalendar(){
+  const base = new Date(state.viewDate);
+  const nextMonth = new Date(base.getFullYear(), base.getMonth()+1, 1);
+  const items = state.items
+    .filter(it=>{ const d=new Date(it.date); return d.getMonth()===nextMonth.getMonth() && d.getFullYear()===nextMonth.getFullYear(); })
+    .sort((a,b)=>a.date.localeCompare(b.date))
+    .slice(0,4);
+  if(items.length===0){
+    state.nlError = "Aucun contenu planifié le mois suivant dans le calendrier pour l'instant.";
+    render();
+    return;
+  }
+  const lines = items.map(it=>{
+    const d = new Date(it.date);
+    const dateStr = d.toLocaleDateString('fr-FR', { day:'numeric', month:'long' });
+    return `${dateStr} - ${it.title}`;
+  });
+  state.nl.agendaSuivant = lines.join('\n');
+  render();
+}
+
+async function generateNewsletter(){
+  const nl = state.nl;
+  state.nlLoading = true; state.nlError = null; state.nlResults = null; render();
+
+  const systemPrompt = `Tu es le community manager du club de handball amateur ${CLUB.nom} (${CLUB.sigle}), ${CLUB.villes}. Ton : ${CLUB.ton}.
+Tu rédiges la newsletter mensuelle du club, sur le modèle d'une newsletter déjà existante avec ces sections : mot du club, résultats & classement du mois (avec chiffre du mois), matchs à venir, coulisses du club, le saviez-vous / minute règles, portrait du mois, statistiques officielles, défis fair-play, valeurs du club, coup de main du mois, et éventuellement un événement spécial.
+RÈGLE ABSOLUE : n'invente JAMAIS de scores, résultats, noms de joueurs ou adversaires réels. Utilise UNIQUEMENT les données fournies par l'utilisatrice pour les résultats et les matchs à venir. Si aucune donnée n'est fournie pour une section factuelle, laisse le tableau vide plutôt que d'inventer.
+Les sections génériques (le saviez-vous, valeurs du club, défis fair-play) peuvent être proposées même sans données, car elles ne sont pas factuelles.
+Reste concis dans chaque section (2-4 phrases maximum par texte libre) pour que la réponse tienne entièrement dans le format demandé.
+Réponds UNIQUEMENT avec un objet JSON valide, sans texte avant/après, sans markdown, au format exact :
+{
+"mot_du_club": "paragraphe chaleureux du bureau, quelques phrases",
+"sommaire": ["intitulé section 1","intitulé section 2","..."],
+"chiffre_du_mois": {"label":"ex. Buts marqués au total", "valeur":"..."},
+"resultats": {"intro":"phrase d'intro sur la dynamique du mois", "equipes":[{"nom":"ex. SÉNIORS +16M - DIVISION 2","bilan":"ex. 1 victoire, 1 nul","matchs":[{"score":"29-27","adversaire":"Limours HB"}],"commentaire":"phrase courte"}]},
+"matchs_a_venir": [{"categorie":"ex. +16M DIV 2 - SENIORS","date":"ex. dimanche 15 mars 2026","heure":"15h00","adversaire":"...","lieu":"...","domicile":true}],
+"coulisses": {"texte":"courte accroche pour introduire une galerie photo"},
+"le_saviez_vous": {"question":"...", "points":["...","..."]},
+"portrait_du_mois": {"titre":"...", "noms":["..."], "texte":"..."},
+"statistiques_officielles": [{"label":"...", "valeur":"..."}],
+"defi_fair_play": ["...","..."],
+"valeurs_club": ["Respect","Engagement","Esprit d'équipe","Plaisir"],
+"coup_de_main": {"texte":"remerciements du mois, en citant les noms fournis"},
+"evenement_special": {"titre":"...", "texte":"...", "date":"...", "programme":["...","..."]},
+"partenaire_du_mois": {"nom":"...", "texte":"quelques phrases valorisant le partenaire et son soutien", "cta":"ex. découvrez leurs services / rendez-leur visite"},
+"agenda_condense": [{"date":"...", "titre":"..."}],
+"sondage": {"question":"question ouverte ou sondage engageant pour les licenciés", "options":["option 1","option 2"], "cta":"comment répondre (ex. en story, par message, au prochain match)"},
+"anniversaires_du_mois": {"texte":"petit mot convivial mentionnant les licenciés dont c'est l'anniversaire ce mois-ci, à partir de la liste de prénoms fournie"}
+}
+Si "evenement_special" n'a pas de contenu fourni, renvoie null pour ce champ. Idem pour "partenaire_du_mois" si aucune info fournie. "agenda_condense" doit rester vide si aucune date n'est fournie (ne pas inventer de dates). "sondage" peut être généré même sans donnée fournie car il est de nature générique/engageante. "anniversaires_du_mois" doit rester null si aucun prénom n'est fourni — n'invente JAMAIS de prénoms.`;
+
+  const userPrompt = `Contexte du mois / mot du club (infos libres à intégrer) : ${nl.contexte || "(aucun contexte fourni, reste sobre et générique)"}
+
+Résultats bruts du mois (à structurer, ne rien inventer au-delà) :
+${nl.resultatsBrut || "(aucun résultat fourni)"}
+
+Matchs à venir bruts (à structurer, ne rien inventer au-delà) :
+${nl.matchsBrut || "(aucun match à venir fourni)"}
+
+Événement spécial du mois (si applicable) : ${nl.evenementSpecial || "(aucun)"}
+
+Thème "le saviez-vous" souhaité : ${nl.saviezVous || "(propose un thème pertinent lié aux règles ou à l'arbitrage du handball)"}
+
+Portrait du mois (qui mettre en avant) : ${nl.portraitBrut || "(propose un type de portrait pertinent, ex. bénévoles ou jeunes arbitres)"}
+
+Coup de main du mois / remerciements (noms à citer) : ${nl.coupDeMain || "(reste générique, remercie les bénévoles sans citer de nom)"}
+
+Partenaire du mois à mettre en avant (nom + ce qu'il apporte au club) : ${nl.partenaireDuMois || "(aucun, laisse cette section vide)"}
+
+Agenda condensé du mois suivant (3-4 dates clés, une par ligne) : ${nl.agendaSuivant || "(aucune date fournie, laisse cette section vide)"}
+
+Thème pour la question ouverte / sondage aux licenciés (optionnel) : ${nl.sondage || "(propose une question engageante et pertinente pour un club de handball amateur)"}
+
+Licenciés dont l'anniversaire tombe ce mois-ci (liste réelle calculée automatiquement, ne pas en ajouter ni en inventer d'autres) : ${getBirthdaysForMonth(state.nlMonth).length ? getBirthdaysForMonth(state.nlMonth).map(p=>p.prenom).join(', ') : "(aucun — laisse ce champ à null)"}`;
+
+  try{
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 4000, system: systemPrompt, messages: [{ role:"user", content:userPrompt }] })
+    });
+    const data = await response.json();
+    const textBlock = (data.content||[]).find(b=>b.type==='text');
+    if(!textBlock) throw new Error("Pas de réponse texte");
+    const parsed = parseAIJson(textBlock.text);
+    state.nlResults = parsed;
+    state.nlEditedSections = {};
+    const entry = {
+      id: 'hist_' + Date.now(),
+      type: 'newsletter',
+      timestamp: new Date().toISOString(),
+      preset: 'Newsletter mensuelle',
+      channels: ['newsletter'],
+      details: nl.contexte,
+      results: parsed
+    };
+    state.history.unshift(entry);
+    saveHistory();
+    saveNlDraft(state.nlMonth);
+  }catch(e){
+    state.nlError = "La génération de la newsletter a échoué. Réessaie, ou vérifie que les données collées sont lisibles.";
+    console.error(e);
+  }
+  state.nlLoading = false; render();
+}
+
+function getNewsletterSections(nl){
+  const sections = [];
+  if(nl.mot_du_club) sections.push({ key:'mot_du_club', label:'Le mot du club', text: nl.mot_du_club });
+  if(nl.evenement_special) sections.push({ key:'evenement_special', label: nl.evenement_special.titre||'Événement du mois',
+    text: [nl.evenement_special.texte, nl.evenement_special.date?('Date : '+nl.evenement_special.date):'', ...(nl.evenement_special.programme||[]).map(p=>'• '+p)].filter(Boolean).join('\n') });
+  if(nl.sommaire && nl.sommaire.length) sections.push({ key:'sommaire', label:'Au sommaire', text: nl.sommaire.map(s=>'• '+s).join('\n') });
+  if(nl.resultats){
+    let t = (nl.resultats.intro||'') + '\n';
+    if(nl.chiffre_du_mois) t += `\nChiffre du mois — ${nl.chiffre_du_mois.label} : ${nl.chiffre_du_mois.valeur}\n`;
+    (nl.resultats.equipes||[]).forEach(eq=>{
+      t += `\n${eq.nom} — ${eq.bilan}\n`;
+      (eq.matchs||[]).forEach(m=> t += `${m.score} vs ${m.adversaire}\n`);
+      if(eq.commentaire) t += `${eq.commentaire}\n`;
+    });
+    sections.push({ key:'resultats', label:'Résultats & classement', text: t.trim() });
+  }
+  if(nl.matchs_a_venir && nl.matchs_a_venir.length){
+    sections.push({ key:'matchs_a_venir', label:'Matchs à venir', text: nl.matchs_a_venir.map(m=>`${m.categorie} — ${m.date} à ${m.heure} vs ${m.adversaire} — ${m.domicile?'🏠 ':''}${m.lieu}`).join('\n') });
+  }
+  if(nl.coulisses) sections.push({ key:'coulisses', label:'Les coulisses du club', text: nl.coulisses.texte });
+  if(nl.le_saviez_vous) sections.push({ key:'le_saviez_vous', label:'Le saviez-vous ?', text: [nl.le_saviez_vous.question, ...(nl.le_saviez_vous.points||[]).map(p=>'• '+p)].filter(Boolean).join('\n') });
+  if(nl.portrait_du_mois) sections.push({ key:'portrait_du_mois', label:'Portrait du mois — '+nl.portrait_du_mois.titre, text: [((nl.portrait_du_mois.noms||[]).join(', ')), nl.portrait_du_mois.texte].filter(Boolean).join('\n') });
+  if(nl.statistiques_officielles && nl.statistiques_officielles.length) sections.push({ key:'statistiques_officielles', label:'Statistiques officielles', text: nl.statistiques_officielles.map(s=>'• '+s.label+' : '+s.valeur).join('\n') });
+  if(nl.defi_fair_play && nl.defi_fair_play.length) sections.push({ key:'defi_fair_play', label:'Défi fair-play du mois', text: nl.defi_fair_play.map(d=>'• '+d).join('\n') });
+  if(nl.valeurs_club && nl.valeurs_club.length) sections.push({ key:'valeurs_club', label:'Valeurs EIVHB', text: nl.valeurs_club.join(' • ') });
+  if(nl.coup_de_main) sections.push({ key:'coup_de_main', label:'Coup de main du mois', text: nl.coup_de_main.texte });
+  if(nl.partenaire_du_mois) sections.push({ key:'partenaire_du_mois', label:'Partenaire du mois — '+nl.partenaire_du_mois.nom, text: [nl.partenaire_du_mois.texte, nl.partenaire_du_mois.cta].filter(Boolean).join('\n') });
+  if(nl.agenda_condense && nl.agenda_condense.length) sections.push({ key:'agenda_condense', label:'À venir le mois prochain', text: nl.agenda_condense.map(a=>a.date+' — '+a.titre).join('\n') });
+  if(nl.sondage) sections.push({ key:'sondage', label:'Votre avis nous intéresse', text: [nl.sondage.question, ...(nl.sondage.options||[]).map(o=>'• '+o), nl.sondage.cta].filter(Boolean).join('\n') });
+  if(nl.anniversaires_du_mois) sections.push({ key:'anniversaires_du_mois', label:'Anniversaires du mois', text: nl.anniversaires_du_mois.texte });
+  return sections;
+}
+
+function getEditedSectionText(section){
+  if(state.nlEditedSections[section.key] !== undefined) return state.nlEditedSections[section.key];
+  return section.text;
+}
+
+function nlToMarkdown(nl){
+  return getNewsletterSections(nl).map(s=>`## ${s.label}\n${getEditedSectionText(s)}\n`).join('\n');
+}
+
+function exportNewsletterMarkdown(){
+  if(!state.nlResults) return;
+  const md = `# Newsletter EIVHB\n\n` + nlToMarkdown(state.nlResults);
+  const blob = new Blob([md], { type: 'text/markdown' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `newsletter-eivhb-${todayStr()}.md`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function addNewsletterToCalendar(){
+  if(!state.nlResults) return;
+  const item = {
+    id: 'item_' + Date.now() + '_' + Math.floor(Math.random()*1000),
+    date: todayStr(),
+    title: 'Newsletter mensuelle',
+    channels: ['newsletter'],
+    status: 'brouillon',
+    content: nlToMarkdown(state.nlResults)
+  };
+  state.items.push(item); saveItems(); render();
+}
+
+function addToQueue(){
+  if(!state.genPreset){ state.genError = "Choisis un type de contenu avant de l'ajouter à la file."; render(); return; }
+  const channels = Object.keys(state.genChannels).filter(c=>state.genChannels[c]);
+  if(channels.length===0){ state.genError = "Sélectionne au moins un canal avant de l'ajouter à la file."; render(); return; }
+  state.genQueue.push({
+    id: 'queue_' + Date.now() + '_' + Math.floor(Math.random()*1000),
+    preset: state.genPreset,
+    channels: channels,
+    details: state.genDetails,
+    imageId: state.genSelectedImageId || null
+  });
+  state.genError = null;
+  state.genPreset = null; state.genDetails = ''; state.genSelectedImageId = null;
+  render();
+}
+function removeFromQueue(id){ state.genQueue = state.genQueue.filter(q=>q.id!==id); render(); }
+
+async function processQueue(){
+  if(state.genQueue.length===0) return;
+  state.batchLoading = true; state.batchError = null; state.batchResults = [];
+  const total = state.genQueue.length;
+  render();
+
+  for(let i=0;i<total;i++){
+    const q = state.genQueue[i];
+    state.batchProgress = `${i+1}/${total} — ${q.preset}`;
+    render();
+    try{
+      const parsed = await callGenerateAPI(q.preset, q.channels, q.details);
+      state.batchResults.push({ id:q.id, preset:q.preset, channels:q.channels, imageId:q.imageId, results:parsed, error:null });
+      state.history.unshift({
+        id: 'hist_' + Date.now() + '_' + i,
+        timestamp: new Date().toISOString(),
+        preset: q.preset, channels: q.channels, details: q.details, results: parsed, imageId: q.imageId
+      });
+    }catch(e){
+      state.batchResults.push({ id:q.id, preset:q.preset, channels:q.channels, results:null, error:"Échec de la génération" });
+      console.error(e);
+    }
+  }
+  saveHistory();
+  state.genQueue = [];
+  state.batchProgress = null;
+  state.batchLoading = false;
+  render();
+}
+
+function renderQueue(){
+  if(state.genQueue.length===0) return '';
+  return `<div class="field">
+    <label>File d'attente (${state.genQueue.length})</label>
+    ${state.genQueue.map(q=>`<div class="history-item" style="cursor:default;">
+      <div class="history-head">
+        <div class="history-title">${escapeHtml(q.preset)}</div>
+        <button class="btn-ghost btn-sm" onclick="removeFromQueue('${q.id}')">Retirer</button>
+      </div>
+      <div class="history-meta">${q.channels.map(c=>CHANNEL_META[c]?.label||c).join(', ')}</div>
+    </div>`).join('')}
+    <button class="btn btn-primary" style="width:100%; justify-content:center; margin-top:6px;" onclick="processQueue()" ${state.batchLoading?'disabled':''}>Générer toute la file (${state.genQueue.length})</button>
+  </div>`;
+}
+
+function renderBatchResults(){
+  if(!state.batchResults || state.batchResults.length===0) return '';
+  return state.batchResults.map((b, bi)=>{
+    if(b.error){
+      return `<div class="result-card"><div class="result-head" style="background:var(--muted);"><span>${escapeHtml(b.preset)}</span></div><div class="result-body" style="color:var(--red);">${b.error}</div></div>`;
+    }
+    const img = b.imageId ? state.images.find(i=>i.id===b.imageId) : null;
+    const imgThumb = img ? `<div style="padding:12px 16px 0;"><img src="${img.dataUrl}" style="max-width:100px; max-height:100px; border-radius:8px; border:1px solid var(--line); display:block;"></div>` : '';
+    let html = `<div class="card" style="margin-bottom:12px; padding:0; overflow:hidden;"><div style="padding:10px 16px; background:#FAFBFD; border-bottom:1px solid var(--line); font-weight:600; font-size:13px;">${escapeHtml(b.preset)}</div>`;
+    const r = b.results;
+    const editableBatchCard = (channel, headClass, label)=>{
+      if(!r[channel]) return '';
+      const text = getFinalChannelText(r, channel);
+      return `<div class="result-card" style="border:none; border-radius:0; margin:0;">
+        <div class="result-head ${headClass}"><span>${label}</span></div>
+        ${imgThumb}
+        <div style="padding:14px 16px;">
+          <textarea class="resizable-textarea" rows="5" style="border:none; padding:0; font-size:14px; line-height:1.55;" oninput="state.batchResults[${bi}].results.${channel}._edited=this.value">${escapeHtml(text)}</textarea>
+        </div>
+        <div class="result-foot"><button class="btn btn-sm" onclick="copyText(getFinalChannelText(state.batchResults[${bi}].results,'${channel}'), this)">Copier</button></div>
+      </div>`;
+    };
+    html += editableBatchCard('facebook','fb','Facebook');
+    html += editableBatchCard('instagram','ig','Instagram');
+    html += editableBatchCard('whatsapp','wa','WhatsApp');
+    html += editableBatchCard('site','site','Site web');
+    html += `</div>`;
+    return html;
+  }).join('');
+}
+
+function handleEivhbLogoFile(e){
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(ev){
+    state.eivhbLogo = ev.target.result;
+    saveEivhbLogo();
+    render();
+  };
+  reader.readAsDataURL(file);
+}
+
+function handleOpponentLogoFile(e, clubName){
+  const file = e.target.files[0];
+  if(!file || !clubName) return;
+  const reader = new FileReader();
+  reader.onload = function(ev){
+    state.opponentLogos[clubName] = ev.target.result;
+    saveOpponentLogos();
+    render();
+  };
+  reader.readAsDataURL(file);
+}
+
+function updateMatchBuilder(field, value){ state.matchBuilder[field] = value; render(); }
+function updateMatchBuilderSilent(field, value){ state.matchBuilder[field] = value; }
+
+function addMatchToBuilderList(){
+  const mb = state.matchBuilder;
+  const adversaireNom = mb.adversaire === "Autre club (préciser)" ? mb.adversaireAutre : mb.adversaire;
+  if(!adversaireNom){ alert("Sélectionne ou précise le club adverse."); return; }
+  const scorePart = mb.score ? ` — score ${mb.score}` : '';
+  const line = `${mb.categorie} — ${adversaireNom}${scorePart} — ${mb.date || '(date à préciser)'} ${mb.heure || ''} — ${mb.lieu || '(lieu à préciser)'} — ${mb.domicile ? 'domicile' : 'extérieur'}`;
+  state.matchBuilderList.push({ id:'mb_'+Date.now(), categorie:mb.categorie, adversaire:adversaireNom, score:mb.score, date:mb.date, heure:mb.heure, lieu:mb.lieu, domicile:mb.domicile, line });
+  state.genDetails = (state.genDetails ? state.genDetails + '\n' : '') + line;
+  render();
+}
+
+function resetMatchBuilder(){
+  state.matchBuilder = { categorie: TEAM_CATEGORIES[0], adversaire: "", adversaireAutre: "", score: "", date: "", heure: "", lieu: "", domicile: true };
+  render();
+}
+
+function loadMatchIntoBuilder(id){
+  const m = state.matchBuilderList.find(x=>x.id===id);
+  if(!m) return;
+  state.matchBuilder = { categorie:m.categorie, adversaire:m.adversaire, adversaireAutre:"", score:m.score||"", date:m.date, heure:m.heure, lieu:m.lieu, domicile:m.domicile };
+  render();
+  setTimeout(generateVisualPages, 50);
+}
+
+function removeMatchFromBuilderList(id){
+  state.matchBuilderList = state.matchBuilderList.filter(m=>m.id!==id);
+  render();
+}
+
+function renderMatchBuilder(){
+  const mb = state.matchBuilder;
+  const adversaireNom = mb.adversaire === "Autre club (préciser)" ? mb.adversaireAutre : mb.adversaire;
+  const oppLogo = adversaireNom ? state.opponentLogos[adversaireNom] : null;
+  return `
+    <div class="card">
+      <label>Constructeur de match</label>
+      <div class="field">
+        <label>Catégorie de l'équipe qui joue</label>
+        <select onchange="updateMatchBuilder('categorie', this.value)">
+          ${TEAM_CATEGORIES.map(c=>`<option value="${c}" ${mb.categorie===c?'selected':''}>${c}</option>`).join('')}
+        </select>
+      </div>
+      <div class="field">
+        <label>Club adverse (Essonne, 91)</label>
+        <select onchange="updateMatchBuilder('adversaire', this.value)">
+          <option value="" ${mb.adversaire===''?'selected':''}>— Choisir un club —</option>
+          ${ESSONNE_CLUBS.map(c=>`<option value="${c}" ${mb.adversaire===c?'selected':''}>${c}</option>`).join('')}
+        </select>
+        ${mb.adversaire==='Autre club (préciser)' ? `<input type="text" style="margin-top:8px;" placeholder="Nom du club" value="${escapeHtml(mb.adversaireAutre)}" oninput="updateMatchBuilderSilent('adversaireAutre', this.value)">` : ''}
+      </div>
+      <div class="upload-row">
+        ${state.genPreset === "Résultats du week-end" ? `<div>
+          <label>Score (si résultat connu)</label>
+          <input type="text" value="${escapeHtml(mb.score)}" placeholder="Ex. 29-27" oninput="updateMatchBuilderSilent('score', this.value)">
+        </div>` : ''}
+        <div>
+          <label>Date</label>
+          <input type="date" value="${mb.date}" onchange="updateMatchBuilder('date', this.value)">
+        </div>
+        <div>
+          <label>Heure</label>
+          <input type="time" value="${mb.heure}" onchange="updateMatchBuilder('heure', this.value)">
+        </div>
+      </div>
+      <div class="field">
+        <label>Lieu</label>
+        <input type="text" value="${escapeHtml(mb.lieu)}" placeholder="Ex. Gymnase Guéric Kervadec - Igny" oninput="updateMatchBuilderSilent('lieu', this.value)">
+      </div>
+      <div class="chip-row" style="margin-bottom:14px;">
+        <div class="chip ${mb.domicile?'selected':''}" onclick="updateMatchBuilder('domicile', true)">🏠 Domicile</div>
+        <div class="chip ${!mb.domicile?'selected':''}" onclick="updateMatchBuilder('domicile', false)">Extérieur</div>
+      </div>
+
+      <div class="logo-pair">
+        <div class="logo-slot">
+          <div class="hint" style="text-transform:uppercase; font-weight:600; letter-spacing:0.03em;">Logo EIVHB</div>
+          ${state.eivhbLogo ? `<img src="${state.eivhbLogo}" class="logo-preview">` : `<div class="logo-placeholder">Aucun logo</div>`}
+          <input type="file" accept="image/*" onchange="handleEivhbLogoFile(event)">
+        </div>
+        <div class="logo-vs">VS</div>
+        <div class="logo-slot">
+          <div class="hint" style="text-transform:uppercase; font-weight:600; letter-spacing:0.03em;">Logo ${adversaireNom ? escapeHtml(adversaireNom) : 'adversaire'}</div>
+          ${oppLogo ? `<img src="${oppLogo}" class="logo-preview">` : `<div class="logo-placeholder">${adversaireNom ? 'Aucun logo enregistré' : 'Choisis un club'}</div>`}
+          ${adversaireNom ? `<input type="file" accept="image/*" onchange="handleOpponentLogoFile(event, '${adversaireNom.replace(/'/g,"\\'")}')">` : ''}
+        </div>
+      </div>
+      <div class="hint" style="margin-bottom:10px;">Le logo d'un club uploadé une fois est mémorisé et réutilisé automatiquement à chaque fois que tu le sélectionnes.</div>
+
+      <button class="btn btn-primary" style="width:100%; justify-content:center;" onclick="addMatchToBuilderList()">+ Ajouter ce match aux détails</button>
+      <button class="btn btn-sm" style="width:100%; justify-content:center; margin-top:8px;" onclick="resetMatchBuilder()">Nouveau match (vider les champs)</button>
+      <div class="hint" style="margin-top:6px;">Le club et son logo restent sélectionnés après l'ajout, pour que tu puisses générer le visuel Instagram juste en dessous. Clique sur "Nouveau match" quand tu veux passer au match suivant.</div>
+
+      ${state.matchBuilderList.length ? `<div style="margin-top:14px;">
+        ${state.matchBuilderList.map(m=>`<div class="history-item" style="cursor:default;">
+          <div class="history-head">
+            <div class="history-title">${escapeHtml(m.categorie)} vs ${escapeHtml(m.adversaire)}</div>
+            <div style="display:flex; gap:4px;">
+              <button class="btn-ghost btn-sm" onclick="loadMatchIntoBuilder('${m.id}')">Charger pour le visuel</button>
+              <button class="btn-ghost btn-sm" onclick="removeMatchFromBuilderList('${m.id}')">Retirer</button>
+            </div>
+          </div>
+          <div class="history-meta">${escapeHtml(m.line)}</div>
+        </div>`).join('')}
+      </div>` : ''}
+
+      <div style="margin-top:16px; padding-top:14px; border-top:1px solid var(--line);">
+        <label>🔗 Liens FFHandball (résultats & calendrier officiels)</label>
+        ${state.ffLinks.length ? `<div style="display:flex; flex-wrap:wrap; gap:8px; margin-top:8px;">
+          ${state.ffLinks.map(l=>`<a href="${escapeHtml(l.url)}" target="_blank" rel="noopener" class="btn btn-sm" style="text-decoration:none;">${escapeHtml(l.label)} ↗</a>`).join('')}
+        </div>` : `<div class="hint">Aucun lien enregistré — ajoutes-en dans le calendrier (bloc "Liens FFHandball").</div>`}
+      </div>
+    </div>
+  `;
+}
+
+function handleBackgroundFile(e){
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(ev){
+    state.matchVisual.background = ev.target.result;
+    render();
+    setTimeout(generateVisualPages, 50);
+  };
+  reader.readAsDataURL(file);
+}
+
+function setVisualFormat(f){ state.matchVisual.format = f; render(); setTimeout(generateVisualPages, 50); }
+function setVisualCaptionChannel(channel){
+  state.visualCaptionChannel = channel;
+  render();
+  setTimeout(generateVisualPages, 50);
+}
+
+function updateBgPosition(field, value){
+  state.matchVisual[field] = parseInt(value,10);
+  render();
+  setTimeout(generateVisualPages, 50);
+}
+
+function loadImg(src){
+  return new Promise((resolve, reject)=>{
+    if(!src){ resolve(null); return; }
+    const img = new Image();
+    img.onload = ()=>resolve(img);
+    img.onerror = ()=>resolve(null);
+    img.src = src;
+  });
+}
+
+function roundedLogoDraw(ctx, img, cx, cy, r){
+  if(!img) return;
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI*2);
+  ctx.closePath();
+  ctx.fillStyle = '#FFFFFF';
+  ctx.fill();
+  ctx.clip();
+  const scale = Math.max((r*2)/img.width, (r*2)/img.height);
+  const w = img.width*scale, h = img.height*scale;
+  ctx.drawImage(img, cx-w/2, cy-h/2, w, h);
+  ctx.restore();
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI*2);
+  ctx.lineWidth = 6;
+  ctx.strokeStyle = '#FFD700';
+  ctx.stroke();
+}
+
+function handleExtraPhotoFile(e){
+  if(state.visualExtraPhotos.length >= 3){
+    alert("Maximum 3 photos supplémentaires sur le visuel.");
+    e.target.value = '';
+    return;
+  }
+  const files = Array.from(e.target.files||[]).slice(0, 3 - state.visualExtraPhotos.length);
+  files.forEach(file=>{
+    const reader = new FileReader();
+    reader.onload = (ev)=>{
+      state.visualExtraPhotos.push({ src: ev.target.result, size: 140, x: 50, y: 88 });
+      render();
+      setTimeout(generateVisualPages, 50);
+    };
+    reader.readAsDataURL(file);
+  });
+}
+function removeExtraPhoto(idx){
+  state.visualExtraPhotos.splice(idx,1);
+  render();
+  setTimeout(generateVisualPages, 50);
+}
+function updatePhotoParam(idx, field, value){
+  state.visualExtraPhotos[idx][field] = parseInt(value,10);
+  render();
+  setTimeout(generateVisualPages, 50);
+}
+function updateVisualStyle(field, value){
+  state.visualStyle[field] = parseInt(value,10);
+  render();
+  setTimeout(generateVisualPages, 50);
+}
+
+function drawExtraPhotosRow(ctx, W, H, photoConfigs, loadedImgs){
+  photoConfigs.forEach((cfg, i)=>{
+    const img = loadedImgs[i];
+    if(!img) return;
+    const size = cfg.size;
+    const cx = (cfg.x/100)*W;
+    const cy = (cfg.y/100)*H;
+    const x = cx - size/2, y = cy - size/2;
+    ctx.save();
+    ctx.beginPath();
+    const r=10;
+    ctx.moveTo(x+r,y); ctx.arcTo(x+size,y,x+size,y+size,r); ctx.arcTo(x+size,y+size,x,y+size,r); ctx.arcTo(x,y+size,x,y,r); ctx.arcTo(x,y,x+size,y,r);
+    ctx.closePath(); ctx.clip();
+    const scale = Math.max(size/img.width, size/img.height);
+    const w=img.width*scale, h=img.height*scale;
+    ctx.drawImage(img, x+(size-w)/2, y+(size-h)/2, w, h);
+    ctx.restore();
+    ctx.strokeStyle = '#FFD700';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(x,y,size,size);
+  });
+}
+
+function newOffscreenCanvas(W,H){
+  const c = document.createElement('canvas');
+  c.width = W; c.height = H;
+  return c;
+}
+
+function getCaptionText(){
+  const r = state.genResults;
+  if(!r) return '';
+  const chosen = state.visualCaptionChannel;
+  if(chosen && r[chosen]) return getFinalChannelText(r, chosen);
+  if(r.facebook) return getFinalChannelText(r, 'facebook');
+  if(r.instagram) return getFinalChannelText(r, 'instagram');
+  if(r.whatsapp) return getFinalChannelText(r, 'whatsapp');
+  if(r.site) return getFinalChannelText(r, 'site');
+  return '';
+}
+
+function wrapLinesForMeasure(ctx, text, maxWidth){
+  const paragraphs = (text||'').split('\n');
+  let lines = [];
+  paragraphs.forEach(p=>{
+    if(p.trim()===''){ lines.push(''); return; }
+    const words = p.split(/\s+/).filter(Boolean);
+    let line = '';
+    words.forEach(w=>{
+      const test = line ? line+' '+w : w;
+      if(ctx.measureText(test).width > maxWidth && line){ lines.push(line); line = w; }
+      else line = test;
+    });
+    if(line) lines.push(line);
+  });
+  return lines;
+}
+
+function drawBackdrop(ctx, W, H, bg){
+  if(bg){
+    const scale = Math.max(W/bg.width, H/bg.height);
+    const w = bg.width*scale, h = bg.height*scale;
+    const fx = (state.matchVisual.bgX!==undefined ? state.matchVisual.bgX : 50) / 100;
+    const fy = (state.matchVisual.bgY!==undefined ? state.matchVisual.bgY : 50) / 100;
+    const x = (W-w)*fx, y = (H-h)*fy;
+    ctx.drawImage(bg, x, y, w, h);
+    ctx.fillStyle = 'rgba(10,32,73,0.55)';
+    ctx.fillRect(0,0,W,H);
+  } else {
+    ctx.fillStyle = '#0F2E63';
+    ctx.fillRect(0,0,W,H);
+  }
+}
+
+function drawPageHeader(ctx, W, H, eivhbImg, title, pageNum){
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  let y = H*0.08;
+  if(eivhbImg){
+    const r = W*0.095;
+    roundedLogoDraw(ctx, eivhbImg, W/2, y+r, r);
+    y += r*2 + 28;
+  }
+  ctx.fillStyle = '#FFD700';
+  const titleSize = state.visualStyle.titleSize;
+  ctx.font = `700 ${titleSize}px Barlow Condensed, sans-serif`;
+  const fullTitle = pageNum===1 ? title : title + ' (suite)';
+  const lineHeight = titleSize + 6;
+  const lines = wrapText(ctx, fullTitle, W/2, y, W*0.85, lineHeight, 2);
+  y += (lines-1)*lineHeight + 46;
+  ctx.strokeStyle = 'rgba(255,215,0,0.5)';
+  ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.moveTo(W*0.25, y); ctx.lineTo(W*0.75, y); ctx.stroke();
+  y += 46;
+  return y;
+}
+
+function parseOutcomeColor(score){
+  if(!score) return '#B9C6E6';
+  const parts = score.split(/[-–]/).map(s=>parseInt(s.trim(),10));
+  if(parts.length!==2 || isNaN(parts[0]) || isNaN(parts[1])) return '#B9C6E6';
+  if(parts[0] > parts[1]) return '#4CD97B';
+  if(parts[0] < parts[1]) return '#E24B4A';
+  return '#FAC775';
+}
+
+async function buildMultiMatchPages(title, mode){
+  const isSquare = state.matchVisual.format === 'square';
+  const W = 1080, H = isSquare ? 1080 : 1920;
+  const [bg, eivhbImg, ...extraImgs] = await Promise.all([
+    loadImg(state.matchVisual.background),
+    loadImg(state.eivhbLogo),
+    ...state.visualExtraPhotos.map(p=>loadImg(p.src))
+  ]);
+  const caption = getCaptionText();
+  const bodySize = state.visualStyle.bodySize;
+
+  const measure = newOffscreenCanvas(10,10).getContext('2d');
+  measure.font = `400 ${bodySize}px Work Sans, sans-serif`;
+  const captionLines = caption ? wrapLinesForMeasure(measure, caption, W*0.8) : [];
+
+  const matches = state.matchBuilderList;
+  const bottomLimit = H*0.86;
+  const pages = [];
+  let matchIdx = 0, captionIdx = 0, pageNum = 0;
+
+  while(true){
+    pageNum++;
+    const canvas = newOffscreenCanvas(W,H);
+    const ctx = canvas.getContext('2d');
+    drawBackdrop(ctx, W, H, bg);
+    let y = drawPageHeader(ctx, W, H, eivhbImg, title, pageNum);
+
+    if(matches.length===0 && pageNum===1 && !caption){
+      ctx.fillStyle = '#B9C6E6';
+      ctx.font = `400 ${bodySize+4}px Work Sans, sans-serif`;
+      ctx.fillText('Ajoute des matchs ci-dessus pour les voir apparaître ici', W/2, H/2);
+    }
+
+    ctx.textAlign = 'left';
+    const rowH = 150;
+    while(matchIdx < matches.length && y+rowH <= bottomLimit){
+      const m = matches[matchIdx];
+      const dotColorHex = mode === 'results' ? parseOutcomeColor(m.score) : (m.domicile ? '#FFD700' : '#B9C6E6');
+      ctx.fillStyle = dotColorHex;
+      ctx.beginPath(); ctx.arc(W*0.12, y+rowH*0.38, 13, 0, Math.PI*2); ctx.fill();
+
+      ctx.fillStyle = '#FFD700';
+      ctx.font = `600 ${bodySize+2}px Barlow Condensed, sans-serif`;
+      ctx.fillText(m.categorie.toUpperCase(), W*0.18, y+rowH*0.2);
+
+      ctx.fillStyle = '#FFFFFF';
+      ctx.font = `700 ${bodySize+18}px Barlow Condensed, sans-serif`;
+      const middleLabel = mode === 'results' ? (m.score ? m.score : 'vs') : 'vs';
+      ctx.fillText(`EIVHB  ${middleLabel}  ${m.adversaire}`, W*0.18, y+rowH*0.52);
+
+      ctx.fillStyle = '#B9C6E6';
+      ctx.font = `400 ${bodySize-3}px Work Sans, sans-serif`;
+      const infoParts = mode === 'results'
+        ? [m.lieu, m.domicile?'domicile':'extérieur']
+        : [m.date ? new Date(m.date).toLocaleDateString('fr-FR', {day:'numeric', month:'short'}) : '', m.heure, m.lieu, m.domicile?'🏠 domicile':'extérieur'];
+      ctx.fillText(infoParts.filter(Boolean).join(' · '), W*0.18, y+rowH*0.82);
+
+      ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+      ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(W*0.08, y+rowH-10); ctx.lineTo(W*0.92, y+rowH-10); ctx.stroke();
+
+      y += rowH;
+      matchIdx++;
+    }
+
+    if(matchIdx >= matches.length && captionLines.length){
+      if(captionIdx===0){
+        y += 16;
+        ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+        ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(W*0.1, y); ctx.lineTo(W*0.9, y); ctx.stroke();
+        y += 50;
+      }
+      ctx.fillStyle = '#FFFFFF';
+      ctx.font = `400 ${bodySize}px Work Sans, sans-serif`;
+      const lineHeight = 46;
+      while(captionIdx < captionLines.length && y+lineHeight <= bottomLimit){
+        ctx.fillText(captionLines[captionIdx], W*0.1, y);
+        y += lineHeight;
+        captionIdx++;
+      }
+    }
+
+    ctx.textAlign = 'center';
+    if(pageNum===1) drawExtraPhotosRow(ctx, W, H, state.visualExtraPhotos, extraImgs);
+    pages.push(canvas.toDataURL('image/png'));
+
+    if(matchIdx >= matches.length && captionIdx >= captionLines.length) break;
+    if(pageNum >= 10) break;
+  }
+  return pages;
+}
+
+function drawResultsVisual(){ return buildMultiMatchPages('RÉSULTATS DU WEEK-END', 'results'); }
+function drawAnnounceVisual(){ return buildMultiMatchPages(state.genPreset === "Calendrier des matchs (semaine)" ? 'MATCHS DE LA SEMAINE' : 'PROCHAIN MATCH', 'announce'); }
+
+function addGenericInfo(){
+  const val = (state.genericInfoInput||'').trim();
+  if(!val) return;
+  state.genericInfoList.push({ id:'gi_'+Date.now(), text: val });
+  state.genericInfoInput = '';
+  render();
+}
+function removeGenericInfo(id){
+  state.genericInfoList = state.genericInfoList.filter(i=>i.id!==id);
+  render();
+}
+
+function wrapText(ctx, text, x, y, maxWidth, lineHeight, maxLines){
+  const words = (text||'').split(/\s+/).filter(Boolean);
+  let line = '';
+  let lines = [];
+  for(let i=0;i<words.length;i++){
+    const test = line ? line + ' ' + words[i] : words[i];
+    if(ctx.measureText(test).width > maxWidth && line){
+      lines.push(line);
+      line = words[i];
+      if(lines.length >= maxLines) break;
+    } else {
+      line = test;
+    }
+  }
+  if(line && lines.length < maxLines) lines.push(line);
+  if(lines.length === maxLines && words.length > 0){
+    const last = lines[lines.length-1];
+    lines[lines.length-1] = last.replace(/\s*\S*$/, '') + '…';
+  }
+  lines.forEach((l,i)=> ctx.fillText(l, x, y + i*lineHeight));
+  return lines.length;
+}
+
+async function buildGenericPages(){
+  const isSquare = state.matchVisual.format === 'square';
+  const W = 1080, H = isSquare ? 1080 : 1920;
+  const [bg, eivhbImg, diagramImg, ...extraImgs] = await Promise.all([
+    loadImg(state.matchVisual.background),
+    loadImg(state.eivhbLogo),
+    (state.genPreset === "Conseil technique / entraînement") ? loadImg(getExerciseDiagramDataUrl()) : Promise.resolve(null),
+    ...state.visualExtraPhotos.map(p=>loadImg(p.src))
+  ]);
+  const titre = (state.genericVisualTitle || state.genPreset || 'EIVHB').toUpperCase();
+  const titleSize = state.visualStyle.titleSize;
+  const bodySize = state.visualStyle.bodySize;
+
+  const measure = newOffscreenCanvas(10,10).getContext('2d');
+  measure.font = `500 ${bodySize}px Work Sans, sans-serif`;
+  const infoBlocks = state.genericInfoList.length
+    ? state.genericInfoList.map(info=>wrapLinesForMeasure(measure, info.text, W*0.7))
+    : [];
+  measure.font = `400 ${bodySize}px Work Sans, sans-serif`;
+  const captionLines = !state.genericInfoList.length ? wrapLinesForMeasure(measure, (state.genDetails||'').trim(), W*0.78) : [];
+  const caption = getCaptionText();
+  measure.font = `400 ${bodySize-2}px Work Sans, sans-serif`;
+  const postCaptionLines = caption ? wrapLinesForMeasure(measure, caption, W*0.8) : [];
+
+  const bottomLimit = H*0.86;
+  const pages = [];
+  let infoIdx = 0, subIdx = 0, captionIdx = 0, pageNum = 0;
+
+  while(true){
+    pageNum++;
+    const canvas = newOffscreenCanvas(W,H);
+    const ctx = canvas.getContext('2d');
+    drawBackdrop(ctx, W, H, bg);
+
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    let y = H*0.09;
+
+    if(pageNum===1){
+      const logoR = W*0.13;
+      if(eivhbImg){ roundedLogoDraw(ctx, eivhbImg, W/2, y+logoR, logoR); }
+      y += logoR*2 + 40;
+      ctx.strokeStyle = 'rgba(255,215,0,0.6)';
+      ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.moveTo(W*0.25, y); ctx.lineTo(W*0.75, y); ctx.stroke();
+      y += 60;
+      ctx.fillStyle = '#FFD700';
+      ctx.font = `700 ${titleSize}px Barlow Condensed, sans-serif`;
+      const titleLines = wrapText(ctx, titre, W/2, y, W*0.82, titleSize+4, 2);
+      y += titleLines*(titleSize+4) + 30;
+
+      if(diagramImg){
+        const diagW = W*0.7;
+        const diagH = diagW * (120/200);
+        ctx.drawImage(diagramImg, (W-diagW)/2, y, diagW, diagH);
+        y += diagH + 34;
+      }
+    } else {
+      const logoR = W*0.07;
+      if(eivhbImg){ roundedLogoDraw(ctx, eivhbImg, W/2, y+logoR, logoR); }
+      y += logoR*2 + 24;
+      ctx.fillStyle = '#FFD700';
+      ctx.font = `700 ${Math.round(titleSize*0.63)}px Barlow Condensed, sans-serif`;
+      ctx.fillText(titre + ' (suite)', W/2, y);
+      y += 60;
+    }
+
+    ctx.textAlign = 'left';
+
+    if(infoBlocks.length){
+      while(infoIdx < infoBlocks.length && y+50 <= bottomLimit){
+        ctx.fillStyle = '#FFD700';
+        ctx.beginPath(); ctx.arc(W*0.14, y, 9, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = '#FFFFFF';
+        ctx.font = `500 ${bodySize}px Work Sans, sans-serif`;
+        const block = infoBlocks[infoIdx];
+        let placed = 0;
+        for(const line of block){
+          if(y+50 > bottomLimit) break;
+          ctx.fillText(line, W*0.19, y);
+          y += bodySize+14;
+          placed++;
+        }
+        if(placed === block.length){ infoIdx++; y += 18; }
+        else break;
+      }
+    } else if(captionLines.length){
+      ctx.fillStyle = '#FFFFFF';
+      ctx.font = `400 ${bodySize}px Work Sans, sans-serif`;
+      while(subIdx < captionLines.length && y+(bodySize+12) <= bottomLimit){
+        ctx.fillText(captionLines[subIdx], W*0.11, y);
+        y += bodySize+12;
+        subIdx++;
+      }
+    }
+
+    const introDone = infoBlocks.length ? infoIdx >= infoBlocks.length : subIdx >= captionLines.length;
+    if(introDone && postCaptionLines.length){
+      if(captionIdx===0){
+        y += 14;
+        ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+        ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(W*0.1, y); ctx.lineTo(W*0.9, y); ctx.stroke();
+        y += 48;
+      }
+      ctx.fillStyle = '#FFFFFF';
+      ctx.font = `400 ${bodySize-2}px Work Sans, sans-serif`;
+      while(captionIdx < postCaptionLines.length && y+(bodySize+10) <= bottomLimit){
+        ctx.fillText(postCaptionLines[captionIdx], W*0.1, y);
+        y += bodySize+10;
+        captionIdx++;
+      }
+    }
+
+    ctx.textAlign = 'center';
+    if(pageNum===1 && !infoBlocks.length && !captionLines.length && !postCaptionLines.length){
+      ctx.fillStyle = '#B9C6E6';
+      ctx.font = '500 30px Work Sans, sans-serif';
+      ctx.fillText('EIVHB — Entente Igny-Vauhallan Handball', W/2, H*0.94);
+    }
+
+    if(pageNum===1) drawExtraPhotosRow(ctx, W, H, state.visualExtraPhotos, extraImgs);
+    pages.push(canvas.toDataURL('image/png'));
+
+    const infoDone = infoBlocks.length ? infoIdx >= infoBlocks.length : subIdx >= captionLines.length;
+    if(infoDone && captionIdx >= postCaptionLines.length) break;
+    if(pageNum >= 10) break;
+  }
+  return pages;
+}
+
+async function generateVisualPages(){
+  state.visualPageIndex = 0;
+  let pages;
+  if(state.genPreset === "Résultats du week-end") pages = await drawResultsVisual();
+  else if(state.genPreset === "Annonce d'un match" || state.genPreset === "Calendrier des matchs (semaine)") pages = await drawAnnounceVisual();
+  else pages = await buildGenericPages();
+  state.visualPages = pages;
+  render();
+}
+
+function changeVisualPage(delta){
+  const n = state.visualPages.length;
+  state.visualPageIndex = Math.max(0, Math.min(n-1, state.visualPageIndex + delta));
+  render();
+}
+
+function downloadMatchVisual(){
+  if(!state.visualPages.length) return;
+  const dataUrl = state.visualPages[state.visualPageIndex];
+  const a = document.createElement('a');
+  a.href = dataUrl;
+  a.download = `visuel-instagram-eivhb-${todayStr()}${state.visualPages.length>1?'-page'+(state.visualPageIndex+1):''}.png`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+}
+
+function downloadAllVisualPages(){
+  state.visualPages.forEach((dataUrl, i)=>{
+    setTimeout(()=>{
+      const a = document.createElement('a');
+      a.href = dataUrl;
+      a.download = `visuel-instagram-eivhb-${todayStr()}-page${i+1}.png`;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    }, i*300);
+  });
+}
+
+function renderMatchVisualSection(){
+  const isMatchPreset = IMAGE_PRESETS.includes(state.genPreset);
+  const pages = state.visualPages || [];
+  return `
+    <div class="card">
+      <label>Visuel Instagram (fond + logo EIVHB + texte du post)</label>
+      ${!isMatchPreset ? `<div class="field">
+        <label>Titre du visuel</label>
+        <input type="text" id="generic-visual-title" value="${escapeHtml(state.genericVisualTitle)}" placeholder="${escapeHtml(state.genPreset||'Titre')}">
+      </div>
+      <div class="field">
+        <label>Infos à afficher sur le visuel</label>
+        <div style="display:flex; gap:8px;">
+          <input type="text" id="generic-info-input" value="${escapeHtml(state.genericInfoInput)}" placeholder="Ex. Samedi 14h - Portes ouvertes" style="flex:1;">
+          <button class="btn btn-sm" onclick="addGenericInfo()">+ Ajouter</button>
+        </div>
+        ${state.genericInfoList.length ? `<div style="margin-top:8px;">
+          ${state.genericInfoList.map(info=>`<div class="history-item" style="cursor:default; padding:8px 10px;">
+            <div class="history-head">
+              <div class="history-title" style="font-size:13px;">${escapeHtml(info.text)}</div>
+              <button class="btn-ghost btn-sm" onclick="removeGenericInfo('${info.id}')">Retirer</button>
+            </div>
+          </div>`).join('')}
+        </div>` : `<div class="hint">Sans info ajoutée, le visuel reprend automatiquement le champ "Détails" à gauche.</div>`}
+      </div>` : ''}
+      ${state.genResults ? (function(){
+        const available = ['facebook','instagram','whatsapp','site'].filter(c=>state.genResults[c]);
+        if(available.length < 2) return '';
+        return `<div class="field">
+          <label>Texte à coller sur le visuel</label>
+          <div class="chip-row">
+            <div class="chip ${!state.visualCaptionChannel?'selected':''}" onclick="setVisualCaptionChannel(null)">Auto</div>
+            ${available.map(c=>`<div class="chip ${state.visualCaptionChannel===c?'selected':''}" onclick="setVisualCaptionChannel('${c}')">${CHANNEL_META[c].label}</div>`).join('')}
+          </div>
+          <div class="hint">"Auto" prend Facebook, sinon Instagram, sinon WhatsApp, sinon Site — choisis un canal précis pour forcer ce texte sur le visuel.</div>
+        </div>`;
+      })() : ''}
+      <div class="field">
+        <label>Image de fond</label>
+        <input type="file" accept="image/*" onchange="handleBackgroundFile(event)">
+        ${state.matchVisual.background ? `<div class="upload-row" style="margin-top:8px;">
+          <div><label>Cadrage horizontal (${state.matchVisual.bgX}%)</label><input type="range" min="0" max="100" value="${state.matchVisual.bgX}" onchange="updateBgPosition('bgX', this.value)"></div>
+          <div><label>Cadrage vertical (${state.matchVisual.bgY}%)</label><input type="range" min="0" max="100" value="${state.matchVisual.bgY}" onchange="updateBgPosition('bgY', this.value)"></div>
+        </div>` : ''}
+      </div>
+      <div class="field">
+        <label>Photos supplémentaires sur le visuel (3 max)</label>
+        <input type="file" accept="image/*" multiple onchange="handleExtraPhotoFile(event)" ${state.visualExtraPhotos.length>=3?'disabled':''}>
+        ${state.visualExtraPhotos.map((p,idx)=>`
+          <div class="history-item" style="cursor:default; display:flex; gap:10px; align-items:center; padding:10px;">
+            <img src="${p.src}" style="width:44px; height:44px; object-fit:cover; border-radius:6px; flex-shrink:0;">
+            <div style="flex:1;">
+              <div class="hint" style="margin:0 0 4px;">Taille (${p.size}px)</div>
+              <input type="range" min="60" max="320" value="${p.size}" onchange="updatePhotoParam(${idx}, 'size', this.value)">
+              <div style="display:flex; gap:8px; margin-top:6px;">
+                <div style="flex:1;">
+                  <div class="hint" style="margin:0 0 4px;">Position X (${p.x}%)</div>
+                  <input type="range" min="0" max="100" value="${p.x}" onchange="updatePhotoParam(${idx}, 'x', this.value)">
+                </div>
+                <div style="flex:1;">
+                  <div class="hint" style="margin:0 0 4px;">Position Y (${p.y}%)</div>
+                  <input type="range" min="0" max="100" value="${p.y}" onchange="updatePhotoParam(${idx}, 'y', this.value)">
+                </div>
+              </div>
+            </div>
+            <button class="btn-ghost btn-sm" onclick="removeExtraPhoto(${idx})">Retirer</button>
+          </div>
+        `).join('')}
+      </div>
+      <div class="upload-row">
+        <div>
+          <label>Taille du titre (${state.visualStyle.titleSize}px)</label>
+          <input type="range" min="40" max="160" value="${state.visualStyle.titleSize}" onchange="updateVisualStyle('titleSize', this.value)">
+        </div>
+        <div>
+          <label>Taille du texte (${state.visualStyle.bodySize}px)</label>
+          <input type="range" min="20" max="80" value="${state.visualStyle.bodySize}" onchange="updateVisualStyle('bodySize', this.value)">
+        </div>
+      </div>
+      <div class="chip-row" style="margin-bottom:14px;">
+        <div class="chip ${state.matchVisual.format==='square'?'selected':''}" onclick="setVisualFormat('square')">Carré (post) 1080×1080</div>
+        <div class="chip ${state.matchVisual.format==='story'?'selected':''}" onclick="setVisualFormat('story')">Story 1080×1920</div>
+      </div>
+      <div style="background:#0F2E63; border-radius:10px; overflow:hidden; max-width:280px; margin:0 auto 10px; min-height:120px; display:flex; align-items:center; justify-content:center;">
+        ${pages.length ? `<img src="${pages[state.visualPageIndex]}" style="width:100%; display:block;">` : `<div class="hint" style="color:#B9C6E6; padding:20px; text-align:center;">Clique sur "Générer l'aperçu"</div>`}
+      </div>
+      ${pages.length > 1 ? `<div style="display:flex; align-items:center; justify-content:center; gap:12px; margin-bottom:10px;">
+        <button class="btn btn-sm" onclick="changeVisualPage(-1)" ${state.visualPageIndex===0?'disabled':''}>←</button>
+        <span class="hint" style="margin:0;">Image ${state.visualPageIndex+1} / ${pages.length}</span>
+        <button class="btn btn-sm" onclick="changeVisualPage(1)" ${state.visualPageIndex===pages.length-1?'disabled':''}>→</button>
+      </div>` : ''}
+      <div style="display:flex; gap:8px; flex-wrap:wrap;">
+        <button class="btn" style="flex:1; justify-content:center;" onclick="generateVisualPages()">Générer l'aperçu</button>
+        <button class="btn btn-primary" style="flex:1; justify-content:center;" onclick="downloadMatchVisual()">Télécharger ${pages.length>1?'cette image':"l'image"}</button>
+        ${pages.length>1 ? `<button class="btn" style="flex:1; justify-content:center;" onclick="downloadAllVisualPages()">Télécharger les ${pages.length} images</button>` : ''}
+      </div>
+      <div class="hint" style="margin-top:8px;">Le texte du post généré à droite (Facebook, sinon Instagram, sinon WhatsApp) s'intègre automatiquement au visuel. Si tout ne tient pas sur une image, une ou plusieurs images supplémentaires sont créées automatiquement — navigue avec les flèches.${state.genPreset === "Conseil technique / entraînement" ? " Le schéma de l'exercice sélectionné dans la bibliothèque s'ajoute automatiquement sous le titre." : ""}</div>
+    </div>
+  `;
+}
+
+function addResultToCalendar(channel){
+  const res = state.genResults[channel];
+  if(!res) return;
+  const item = {
+    id: 'item_' + Date.now() + '_' + Math.floor(Math.random()*1000),
+    date: todayStr(),
+    title: state.genPreset,
+    channels: [channel],
+    status: 'brouillon',
+    content: getFinalChannelText(state.genResults, channel),
+    imageId: state.genSelectedImageId || null
+  };
+  state.items.push(item); saveItems(); render();
+}
+
+function reuseHistoryEntry(id){
+  const entry = state.history.find(h=>h.id===id);
+  if(!entry) return;
+  state.tab = 'generator';
+  state.genPreset = entry.preset;
+  state.genChannels = { facebook:false, instagram:false, whatsapp:false };
+  entry.channels.forEach(c=> state.genChannels[c] = true);
+  state.genDetails = entry.details;
+  state.genResults = entry.results;
+  state.genSelectedImageId = entry.imageId || null;
+  render();
+}
+function deleteHistoryEntry(id, ev){
+  if(ev) ev.stopPropagation();
+  state.history = state.history.filter(h=>h.id!==id);
+  saveHistory(); render();
+}
+
+function copyText(txt, btnEl){
+  navigator.clipboard.writeText(txt).then(()=>{
+    if(btnEl){ const old = btnEl.textContent; btnEl.textContent = 'Copié'; setTimeout(()=>{ btnEl.textContent = old; }, 1400); }
+  });
+}
+
+/* ===================== RENDER ===================== */
+function render(){
+  const app = document.getElementById('app');
+  app.innerHTML = `
+    <div class="topbar">
+      <div class="topbar-inner">
+        <div class="brand">
+          <div class="crest">${state.eivhbLogo ? `<img src="${state.eivhbLogo}" style="width:100%; height:100%; object-fit:cover; border-radius:50%;">` : 'EI'}</div>
+          <div>
+            <div class="brand-name">EIVHB Com'</div>
+            <div class="brand-sub">Calendrier &amp; générateur de contenu</div>
+          </div>
+        </div>
+        <div class="tabs">
+          <button class="tab-btn ${state.tab==='calendar'?'active':''}" onclick="setTab('calendar')">Calendrier</button>
+          <button class="tab-btn ${state.tab==='generator'?'active':''}" onclick="setTab('generator')">Générateur</button>
+          <button class="tab-btn ${state.tab==='affiches'?'active':''}" onclick="setTab('affiches')">Affiches Canva</button>
+        </div>
+      </div>
+    </div>
+    <div class="court-line"></div>
+    <main>
+      ${state.tab === 'calendar' ? renderCalendar() : state.tab === 'generator' ? renderGenerator() : renderAffichesTab()}
+    </main>
+    ${state.modalOpen ? renderModal() : ''}
+    ${state.ideasModalOpen ? renderIdeasModal() : ''}
+  `;
+  attachInputHandlers();
+}
+
+function getWeekDays(viewDate){
+  const d = new Date(viewDate);
+  const dow = d.getDay();
+  const offset = dow === 0 ? -6 : 1 - dow;
+  const monday = new Date(d);
+  monday.setDate(d.getDate() + offset);
+  const days = [];
+  for(let i=0;i<7;i++){ const day = new Date(monday); day.setDate(monday.getDate()+i); days.push(day); }
+  return days;
+}
+function changeWeek(delta){ const d = new Date(state.viewDate); d.setDate(d.getDate() + delta*7); state.viewDate = d; render(); }
+
+function renderBackupReminder(){
+  let daysAgo = null;
+  if(state.lastBackupAt){
+    daysAgo = Math.floor((Date.now() - new Date(state.lastBackupAt).getTime()) / 86400000);
+  }
+  const urgent = daysAgo === null || daysAgo > 14;
+  const text = daysAgo === null
+    ? "Aucune sauvegarde enregistrée pour l'instant."
+    : daysAgo === 0 ? "Dernière sauvegarde : aujourd'hui."
+    : daysAgo === 1 ? "Dernière sauvegarde : hier."
+    : `Dernière sauvegarde : il y a ${daysAgo} jours.`;
+  return `<div style="display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 14px; border-radius:8px; margin-bottom:14px; background:${urgent?'#FDEEF0':'#EFF6ED'}; border:1px solid ${urgent?'var(--red)':'#4CAF50'};">
+    <span style="font-size:13px; color:${urgent?'var(--red)':'#2E7D32'};">${urgent?'⚠️ ':'✅ '}${text}</span>
+    <button class="btn btn-sm" onclick="exportAllData()">💾 Sauvegarder maintenant</button>
+  </div>`;
+}
+
+function buildPosterBriefText(){
+  const p = state.posterBrief;
+  return `Crée une affiche pour le club de handball EIVHB (Entente Igny-Vauhallan Handball, couleurs bleu royal #1B4EA8 / rouge #C41E3A / or #FFD700, logo à intégrer).
+Titre : ${p.titre || '(à préciser)'}
+Type d'événement : ${p.typeEvenement || '(à préciser)'}
+Informations à faire figurer : ${p.infos || '(à préciser)'}
+Style souhaité : ${p.style}
+Format : ${p.format}`;
+}
+
+function updatePosterBrief(field, value){ state.posterBrief[field] = value; }
+
+function renderAffichesTab(){
+  return `
+    <div class="gen-layout">
+      <div class="card">
+        <label>Créer une affiche avec Canva</label>
+        <div class="hint" style="margin-bottom:14px;">Remplis ce brief, copie-le, puis colle-le moi directement dans le chat (ex. "crée cette affiche sur Canva") — je génère l'affiche pour toi via Canva. L'appli seule ne peut pas se connecter à Canva ; c'est moi qui m'en charge quand tu me donnes le brief.</div>
+        <div class="field">
+          <label>Titre de l'affiche</label>
+          <input type="text" id="poster-titre" value="${escapeHtml(state.posterBrief.titre)}" placeholder="Ex. Forum des associations" oninput="updatePosterBrief('titre', this.value)">
+        </div>
+        <div class="field">
+          <label>Type d'événement</label>
+          <input type="text" id="poster-type" value="${escapeHtml(state.posterBrief.typeEvenement)}" placeholder="Ex. recrutement, tournoi, portes ouvertes..." oninput="updatePosterBrief('typeEvenement', this.value)">
+        </div>
+        <div class="field">
+          <label>Informations à faire figurer</label>
+          <textarea id="poster-infos" rows="4" placeholder="Ex. date, heure, lieu, contact, inscriptions..." oninput="updatePosterBrief('infos', this.value)">${escapeHtml(state.posterBrief.infos)}</textarea>
+        </div>
+        <div class="field">
+          <label>Style souhaité</label>
+          <input type="text" id="poster-style" value="${escapeHtml(state.posterBrief.style)}" oninput="updatePosterBrief('style', this.value)">
+        </div>
+        <div class="field">
+          <label>Format</label>
+          <select id="poster-format" onchange="updatePosterBrief('format', this.value)">
+            ${["Affiche A4 (portrait)","Post Instagram carré","Story Instagram/Facebook","Flyer A5"].map(f=>`<option value="${f}" ${state.posterBrief.format===f?'selected':''}>${f}</option>`).join('')}
+          </select>
+        </div>
+        <button class="btn btn-gold" style="width:100%; justify-content:center;" onclick="copyPosterBrief()">Copier le brief pour Canva</button>
+      </div>
+
+      <div>
+        <div class="card">
+          <label>🚀 Publication automatique (via Make.com)</label>
+          <div class="hint" style="margin-bottom:10px;">Colle ici l'URL de webhook fournie par ton scénario Make (déclencheur "Webhook personnalisé"). Une fois configurée, un bouton "Publier via Make" apparaît sur tes posts Facebook/Instagram générés dans le Générateur.</div>
+          <div style="display:flex; gap:8px;">
+            <input type="text" id="make-webhook-input" value="${escapeHtml(state.makeWebhookUrl)}" placeholder="https://hook.eu1.make.com/..." style="flex:1;">
+            <button class="btn btn-sm" onclick="saveMakeWebhookUrl()">Enregistrer</button>
+          </div>
+          <div class="hint" style="margin-top:8px;">${state.makeWebhookUrl ? '✅ Webhook configuré.' : "Pas encore configuré — demande-moi de te guider pour créer le scénario Make si besoin."}</div>
+        </div>
+        <div class="card" style="margin-top:18px;">
+          <label>Liens rapides</label>
+          <div style="display:flex; flex-direction:column; gap:8px;">
+            <a href="https://www.facebook.com/pages/create" target="_blank" rel="noopener" class="btn" style="text-decoration:none; justify-content:flex-start;">📘 Ouvrir Facebook (créer une publication) ↗</a>
+            <a href="https://www.instagram.com/" target="_blank" rel="noopener" class="btn" style="text-decoration:none; justify-content:flex-start;">📸 Ouvrir Instagram ↗</a>
+            <a href="https://www.canva.com/instagram-posts/templates/" target="_blank" rel="noopener" class="btn" style="text-decoration:none; justify-content:flex-start;">🎨 Construire un post Instagram sur Canva ↗</a>
+            <a href="https://www.canva.com/facebook-posts/templates/" target="_blank" rel="noopener" class="btn" style="text-decoration:none; justify-content:flex-start;">🎨 Construire un post Facebook sur Canva ↗</a>
+          </div>
+        </div>
+        <div class="card" style="margin-top:18px;">
+          <label>Comment ça marche</label>
+          <ol class="hint" style="margin:0; padding-left:18px; line-height:1.8;">
+            <li><strong>Affiches :</strong> remplis le brief à gauche, copie-le, colle-le moi dans le chat ("crée cette affiche sur Canva") — je la génère pour toi.</li>
+            <li><strong>Publication auto :</strong> configure ton webhook Make ci-dessus une fois, puis clique "Publier via Make" sur tes posts dans le Générateur.</li>
+          </ol>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function copyPosterBrief(){
+  copyText(buildPosterBriefText());
+}
+
+function renderCalendar(){
+  const today = todayStr();
+  const month = state.viewDate.getMonth();
+  const monthLabel = MONTHS[month] + ' ' + state.viewDate.getFullYear();
+  const weekDays = getWeekDays(state.viewDate);
+  const weekLabel = weekDays[0].toLocaleDateString('fr-FR', {day:'numeric', month:'short'}) + ' – ' + weekDays[6].toLocaleDateString('fr-FR', {day:'numeric', month:'short'});
+
+  return `
+    ${renderBackupReminder()}
+    <div class="cal-header">
+      <div class="cal-nav">
+        ${state.calView !== 'list' ? `
+          <button class="btn btn-sm" onclick="${state.calView==='month'?'changeMonth(-1)':'changeWeek(-1)'}">←</button>
+          <div class="disp cal-month-label">${state.calView==='month' ? monthLabel : weekLabel}</div>
+          <button class="btn btn-sm" onclick="${state.calView==='month'?'changeMonth(1)':'changeWeek(1)'}">→</button>
+        ` : `<div class="disp cal-month-label">Liste</div>`}
+      </div>
+      <div class="chip-row">
+        <div class="chip ${state.calView==='month'?'selected':''}" onclick="setCalView('month')">Mois</div>
+        <div class="chip ${state.calView==='week'?'selected':''}" onclick="setCalView('week')">Semaine</div>
+        <div class="chip ${state.calView==='list'?'selected':''}" onclick="setCalView('list')">Liste des idées</div>
+      </div>
+      <div class="legend">
+        <span><span class="dot dot-fb"></span> Facebook</span>
+        <span><span class="dot dot-ig"></span> Instagram</span>
+        <span><span class="dot dot-wa"></span> WhatsApp</span>
+        <span><span class="dot dot-site"></span> Site web</span>
+      </div>
+      <div class="header-actions">
+        <button class="btn btn-gold" onclick="openIdeasModal()">💡 Idées IA du mois</button>
+        <button class="btn" onclick="exportMonthPlanningSheet()">📊 Exporter (Google Sheets / .csv)</button>
+        <button class="btn" onclick="exportAllData()">💾 Sauvegarde complète</button>
+        <button class="btn" onclick="triggerImportFile()">Restaurer</button>
+        <input type="file" id="import-file-input" accept="application/json" style="display:none" onchange="handleImportFile(event)">
+        <button class="btn btn-primary" onclick="openModalNew('${today}')">+ Ajouter</button>
+      </div>
+    </div>
+    ${state.calView === 'month' ? renderMonthGrid() : state.calView === 'week' ? renderWeekGrid(weekDays) : renderListView()}
+    <div class="card" style="margin-top:18px;">
+      <div class="section-toggle ${state.kpiOpen?'open':''}" onclick="toggleKpi()">
+        <label style="margin:0;">Indicateurs (KPI) — ${monthLabel}</label>
+        <span class="chev">›</span>
+      </div>
+      ${state.kpiOpen ? renderKpiPanel() : ''}
+    </div>
+    <div class="card" style="margin-top:18px;">
+      <div class="section-toggle ${state.ffLinksOpen?'open':''}" onclick="toggleFfLinks()">
+        <label style="margin:0;">Liens FFHandball (résultats & calendrier)</label>
+        <span class="chev">›</span>
+      </div>
+      ${state.ffLinksOpen ? renderFfLinksPanel() : ''}
+    </div>
+  `;
+}
+
+function renderListView(){
+  const filter = state.listStatusFilter;
+  const monthFilter = state.listMonthFilter;
+
+  const monthOptions = Array.from(new Set(state.items.map(it=>monthKey(new Date(it.date)))))
+    .sort();
+
+  let items = state.items.filter(it=> filter==='all' ? true : it.status===filter);
+  if(monthFilter !== 'all') items = items.filter(it=> monthKey(new Date(it.date)) === monthFilter);
+  items = items.sort((a,b)=>a.date.localeCompare(b.date));
+
+  const rows = items.map(it=>`
+    <div class="ml-item" style="cursor:default;">
+      <label style="display:flex; align-items:center; gap:10px; flex:1; cursor:pointer; margin:0;">
+        <input type="checkbox" ${state.listSelection.includes(it.id)?'checked':''} onchange="toggleListSelection('${it.id}')" style="width:auto;">
+        <div onclick="openModalFromCell('${it.id}')" style="flex:1; cursor:pointer;">
+          <strong>${escapeHtml(it.title)}</strong>
+          <div class="hint">${new Date(it.date).toLocaleDateString('fr-FR', {weekday:'short', day:'numeric', month:'short', year:'numeric'})} · ${STATUS_LABEL[it.status]}</div>
+        </div>
+      </label>
+      <div style="display:flex; gap:4px;">
+        ${(it.channels||[]).map(c=>`<span class="dot ${CHANNEL_META[c]?.dot||''}" title="${CHANNEL_META[c]?.label||c}"></span>`).join('')}
+      </div>
+    </div>`).join('') || `<div class="hint">Aucun contenu pour ce filtre.</div>`;
+
+  return `
+    <div class="card">
+      <div style="display:flex; gap:14px; flex-wrap:wrap; margin-bottom:14px;">
+        <div class="field" style="max-width:220px; margin-bottom:0;">
+          <label>Filtrer par statut</label>
+          <select onchange="setListFilter(this.value)">
+            <option value="idee" ${filter==='idee'?'selected':''}>Idées</option>
+            <option value="brouillon" ${filter==='brouillon'?'selected':''}>Brouillons</option>
+            <option value="pret" ${filter==='pret'?'selected':''}>Prêts</option>
+            <option value="publie" ${filter==='publie'?'selected':''}>Publiés</option>
+            <option value="all" ${filter==='all'?'selected':''}>Toutes</option>
+          </select>
+        </div>
+        <div class="field" style="max-width:220px; margin-bottom:0;">
+          <label>Filtrer par mois</label>
+          <select onchange="setListMonthFilter(this.value)">
+            <option value="all" ${monthFilter==='all'?'selected':''}>Tous les mois</option>
+            ${monthOptions.map(mk=>{
+              const [y,m] = mk.split('-');
+              const label = MONTHS[parseInt(m,10)-1] + ' ' + y;
+              return `<option value="${mk}" ${monthFilter===mk?'selected':''}>${label}</option>`;
+            }).join('')}
+          </select>
+        </div>
+      </div>
+      ${state.listSelection.length ? `<div class="selected-image-banner" style="justify-content:space-between;">
+        <span>${state.listSelection.length} sélectionné(s)</span>
+        <div style="display:flex; gap:6px; align-items:center;">
+          <select id="bulk-status-select" style="width:auto;">
+            ${STATUS.map(s=>`<option value="${s}">${STATUS_LABEL[s]}</option>`).join('')}
+          </select>
+          <button class="btn btn-sm" onclick="applyBulkStatus()">Appliquer</button>
+          <button class="btn-ghost btn-sm" onclick="clearListSelection()">Tout désélectionner</button>
+        </div>
+      </div>` : ''}
+      <div style="display:flex; flex-direction:column; gap:8px;">${rows}</div>
+    </div>
+  `;
+}
+
+function renderMonthGrid(){
+  const days = buildCalendarDays(state.viewDate);
+  const month = state.viewDate.getMonth();
+  const today = todayStr();
+
+  const dayCells = days.map(d=>{
+    const ds = fmtDate(d);
+    const outside = d.getMonth() !== month;
+    const isToday = ds === today;
+    const dayItems = state.items.filter(it=>it.date===ds);
+    const pills = dayItems.map(it=>{
+      const ch = it.channels[0] || 'facebook';
+      return `<div class="cal-pill status-${it.status}" draggable="true" ondragstart="handlePillDragStart(event,'${it.id}')" style="background:${dotColor(ch)}; cursor:grab;" onclick="event.stopPropagation(); openModalFromCell('${it.id}')">${escapeHtml(it.title)}</div>`;
+    }).join('');
+    return `<div class="cal-day ${outside?'outside':''} ${isToday?'today':''}" onclick="openModalNew('${ds}')" ondragover="event.preventDefault()" ondrop="handleDayDrop(event,'${ds}')">
+      <div style="display:flex; justify-content:space-between;">
+        <span class="cal-daynum">${d.getDate()}</span>
+        <button class="add-day-btn" onclick="event.stopPropagation(); openModalNew('${ds}')">+</button>
+      </div>
+      ${pills}
+    </div>`;
+  }).join('');
+
+  const listItems = state.items
+    .filter(it=>{ const d=new Date(it.date); return d.getMonth()===month && d.getFullYear()===state.viewDate.getFullYear(); })
+    .sort((a,b)=>a.date.localeCompare(b.date))
+    .map(it=>`<div class="ml-item" onclick="openModalFromCell('${it.id}')">
+      <div><strong>${escapeHtml(it.title)}</strong><div class="hint">${it.date} · ${STATUS_LABEL[it.status]}</div></div>
+      <span class="dot ${CHANNEL_META[it.channels[0]]?.dot||''}"></span>
+    </div>`).join('') || `<div class="hint">Aucun contenu prévu ce mois-ci.</div>`;
+
+  return `
+    <div class="cal-grid">
+      ${DOW.map(d=>`<div class="cal-dow">${d}</div>`).join('')}
+      ${dayCells}
+    </div>
+    <div class="mobile-list">${listItems}</div>
+  `;
+}
+
+const DOW_FULL = ["Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi","Dimanche"];
+function handlePillDragStart(e, id){
+  e.dataTransfer.setData('text/plain', id);
+}
+function handleDayDrop(e, newDate){
+  e.preventDefault();
+  const id = e.dataTransfer.getData('text/plain');
+  const item = state.items.find(it=>it.id===id);
+  if(item){
+    item.date = newDate;
+    saveItems();
+    render();
+  }
+}
+
+function toggleListSelection(id){
+  if(state.listSelection.includes(id)) state.listSelection = state.listSelection.filter(x=>x!==id);
+  else state.listSelection.push(id);
+  render();
+}
+function clearListSelection(){ state.listSelection = []; render(); }
+function applyBulkStatus(){
+  const sel = document.getElementById('bulk-status-select');
+  const status = sel ? sel.value : null;
+  if(!status) return;
+  state.items.forEach(it=>{ if(state.listSelection.includes(it.id)) it.status = status; });
+  saveItems();
+  state.listSelection = [];
+  render();
+}
+
+function generateWeekTemplate(){
+  const weekDays = getWeekDays(state.viewDate);
+  const plan = [
+    { idx:0, title:"Résultats du week-end", channels:["facebook","instagram"] },
+    { idx:2, title:"Annonce des matchs du week-end", channels:["facebook","instagram"] },
+    { idx:4, title:"Teasing / motivation avant le week-end", channels:["instagram"] }
+  ];
+  let added = 0;
+  plan.forEach(p=>{
+    const ds = fmtDate(weekDays[p.idx]);
+    const exists = state.items.some(it=>it.date===ds);
+    if(!exists){
+      state.items.push({
+        id: 'item_' + Date.now() + '_' + Math.floor(Math.random()*1000) + '_' + p.idx,
+        date: ds, title: p.title, channels: p.channels, status: 'idee', content: '', includeInNewsletter: false
+      });
+      added++;
+    }
+  });
+  if(added===0){ alert("Cette semaine a déjà du contenu sur les jours de la trame (lundi/mercredi/vendredi)."); }
+  saveItems();
+  render();
+}
+
+function renderWeekGrid(weekDays){
+  const today = todayStr();
+  return `
+    <div style="margin-bottom:12px;">
+      <button class="btn btn-gold" onclick="generateWeekTemplate()">📋 Générer la trame de cette semaine</button>
+      <span class="hint">Ajoute des idées vides lundi (résultats), mercredi (annonce) et vendredi (teasing) si ces jours sont libres.</span>
+    </div>
+    <div class="week-grid">
+    ${weekDays.map((d,idx)=>{
+      const ds = fmtDate(d);
+      const isToday = ds === today;
+      const dayItems = state.items.filter(it=>it.date===ds);
+      const rows = dayItems.map(it=>{
+        const ch = it.channels[0] || 'facebook';
+        return `<div class="cal-pill status-${it.status}" draggable="true" ondragstart="handlePillDragStart(event,'${it.id}')" style="background:${dotColor(ch)}; margin-bottom:4px; cursor:grab;" onclick="event.stopPropagation(); openModalFromCell('${it.id}')">${escapeHtml(it.title)}</div>`;
+      }).join('') || `<div class="hint">Rien de prévu.</div>`;
+      return `<div class="week-day ${isToday?'today':''}" ondragover="event.preventDefault()" ondrop="handleDayDrop(event,'${ds}')">
+        <div class="week-day-head">
+          <span>${DOW_FULL[idx]}</span>
+          <span class="hint">${d.getDate()} ${MONTHS[d.getMonth()].slice(0,3)}</span>
+          <button class="add-day-btn" style="opacity:1;" onclick="openModalNew('${ds}')">+</button>
+        </div>
+        ${rows}
+      </div>`;
+    }).join('')}
+  </div>`;
+}
+
+function renderKpiPanel(){
+  const key = monthKey(state.viewDate);
+  const k = getKpiForMonth(key);
+  const publiCount = state.items.filter(it=>{ const d=new Date(it.date); return d.getMonth()===state.viewDate.getMonth() && d.getFullYear()===state.viewDate.getFullYear() && it.status==='publie'; }).length;
+  const totalCount = state.items.filter(it=>{ const d=new Date(it.date); return d.getMonth()===state.viewDate.getMonth() && d.getFullYear()===state.viewDate.getFullYear(); }).length;
+  return `
+    <div class="kpi-grid">
+      <div class="kpi-cell"><label style="margin:0;">Publications planifiées</label><div class="kpi-readonly">${totalCount}</div></div>
+      <div class="kpi-cell"><label style="margin:0;">Publications marquées "publié"</label><div class="kpi-readonly">${publiCount}</div></div>
+      <div class="kpi-cell"><label style="margin:0;">Portée totale</label><input type="number" id="kpi-portee" value="${escapeHtml(k.portee)}"></div>
+      <div class="kpi-cell"><label style="margin:0;">Interactions</label><input type="number" id="kpi-interactions" value="${escapeHtml(k.interactions)}"></div>
+      <div class="kpi-cell"><label style="margin:0;">Nouveaux abonnés</label><input type="number" id="kpi-abonnes" value="${escapeHtml(k.abonnes)}"></div>
+      <div class="kpi-cell"><label style="margin:0;">Clics (lien HelloAsso...)</label><input type="number" id="kpi-clics" value="${escapeHtml(k.clics)}"></div>
+      <div class="kpi-cell"><label style="margin:0;">Licenciés recrutés</label><input type="number" id="kpi-licencies" value="${escapeHtml(k.licencies)}"></div>
+      <div class="kpi-cell"><label style="margin:0;">Participation événements</label><input type="number" id="kpi-participation" value="${escapeHtml(k.participation)}"></div>
+    </div>
+    <div style="margin-top:12px; display:flex; gap:8px; flex-wrap:wrap;">
+      <button class="btn btn-primary btn-sm" id="kpi-save-btn" onclick="saveKpiForMonth()">Enregistrer les indicateurs</button>
+      <button class="btn btn-sm" onclick="exportSeasonReport()">📊 Bilan de la saison (tous les mois)</button>
+    </div>
+    <div class="hint" style="margin-top:8px;">Saisie manuelle — reporte les chiffres depuis Facebook/Instagram Insights une fois par mois pour garder un historique exploitable.</div>
+  `;
+}
+
+const DAY_HINTS = {
+  1: "résultats du week-end, classement, remerciements",
+  2: "portrait (bénévole, joueur, entraîneur) ou partenaire du mois",
+  3: "annonce des matchs du week-end",
+  4: "contenu technique, conseil, quiz ou défi",
+  5: "teasing J-1, mot du coach, compo",
+  6: "match day, ambiance, stories",
+  0: "bilan du jour, agenda de la semaine suivante"
+};
+
+async function suggestModalIdea(){
+  const it = state.editingItem;
+  if(!it || !it.date) return;
+  state.modalIdeaLoading = true; render();
+  const d = new Date(it.date);
+  const hint = DAY_HINTS[d.getDay()] || "vie du club";
+  const dateLabel = d.toLocaleDateString('fr-FR', { weekday:'long', day:'numeric', month:'long' });
+
+  const systemPrompt = `Tu es le community manager du club de handball amateur ${CLUB.nom} (${CLUB.sigle}). Ton : ${CLUB.ton}.
+Réponds UNIQUEMENT avec un objet JSON valide, sans texte avant/après, sans markdown :
+{"titre":"...", "canaux":["facebook","instagram"], "idee_visuel":"courte description du visuel/photo à utiliser", "hashtags":["#..","#.."]}`;
+  const userPrompt = `Propose une idée de publication concrète pour le ${dateLabel}.
+D'après la trame hebdomadaire du club, ce jour est plutôt orienté vers : ${hint}.
+Le titre doit être court et concret (pas générique type "contenu du jour"). Le titre ne doit JAMAIS contenir de hashtag ni de description de visuel — ces informations vont dans les champs séparés "idee_visuel" et "hashtags".`;
+
+  try{
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 300, system: systemPrompt, messages: [{ role:"user", content:userPrompt }] })
+    });
+    const data = await response.json();
+    const textBlock = (data.content||[]).find(b=>b.type==='text');
+    if(!textBlock) throw new Error('no text');
+    const parsed = parseAIJson(textBlock.text);
+    if(state.editingItem){
+      state.editingItem.title = parsed.titre || state.editingItem.title;
+      if(parsed.canaux && parsed.canaux.length) state.editingItem.channels = parsed.canaux;
+      if(parsed.idee_visuel) state.editingItem.visualIdea = parsed.idee_visuel;
+      if(parsed.hashtags && parsed.hashtags.length) state.editingItem.hashtags = parsed.hashtags.join(' ');
+    }
+  }catch(e){
+    console.error(e);
+  }
+  state.modalIdeaLoading = false; render();
+}
+
+async function generateFromModalIdea(){
+  const it = state.editingItem;
+  if(!it) return;
+  const details = [it.title, it.content && it.content !== it.title ? it.content : ''].filter(Boolean).join('\n');
+  let channels = (it.channels||[]).filter(c=>POST_CHANNELS.includes(c));
+  if(channels.length===0) channels = ['facebook'];
+  state.modalGenLoading = true; render();
+  try{
+    const parsed = await callGenerateAPI(it.title || "Publication du club", channels, details);
+    let combined = '';
+    let allHashtags = [];
+    if(parsed.facebook){ combined += `[Facebook]\n${parsed.facebook.texte}\n\n`; if(parsed.facebook.hashtags) allHashtags.push(...parsed.facebook.hashtags); }
+    if(parsed.instagram){ combined += `[Instagram]\n${parsed.instagram.accroche||''}\n${parsed.instagram.legende||''}\n\n`; if(parsed.instagram.hashtags) allHashtags.push(...parsed.instagram.hashtags); }
+    if(parsed.whatsapp) combined += `[WhatsApp]\n${parsed.whatsapp.texte}\n\n`;
+    if(parsed.site) combined += `[Site web]\n${parsed.site.titre}\n${parsed.site.texte}\n\n`;
+    if(state.editingItem){
+      state.editingItem.content = combined.trim();
+      if(allHashtags.length) state.editingItem.hashtags = Array.from(new Set(allHashtags)).join(' ');
+    }
+    state.history.unshift({ id:'hist_'+Date.now(), timestamp:new Date().toISOString(), preset: it.title || 'Idée manuelle', channels, details, results: parsed });
+    saveHistory();
+  }catch(e){
+    alert("La génération a échoué. Réessaie.");
+    console.error(e);
+  }
+  state.modalGenLoading = false; render();
+}
+
+function renderModal(){
+  const it = state.editingItem;
+  return `
+  <div class="overlay" onclick="if(event.target===this) closeModal()">
+    <div class="modal wide">
+      <h3>${it.id ? 'Modifier le contenu' : 'Nouveau contenu'}</h3>
+      <div class="field">
+        <label>Titre (affiché dans le calendrier)</label>
+        <div style="display:flex; gap:8px;">
+          <input type="text" value="${escapeHtml(it.title)}" oninput="state.editingItem.title=this.value" placeholder="Ex. Annonce match samedi" style="flex:1;">
+          ${!it.id ? `<button class="btn btn-sm btn-gold" style="white-space:nowrap;" onclick="suggestModalIdea()" ${state.modalIdeaLoading?'disabled':''}>${state.modalIdeaLoading ? '...' : '💡 Idée IA'}</button>` : ''}
+        </div>
+      </div>
+      <div class="field">
+        <label>Contenu / texte du post (modifiable)</label>
+        <textarea id="modal-content-input" class="resizable-textarea" rows="9" placeholder="Colle ou rédige ici le texte complet du post...">${escapeHtml(it.content || '')}</textarea>
+        <button class="btn btn-sm" style="margin-top:8px;" onclick="generateFromModalIdea()" ${state.modalGenLoading?'disabled':''}>${state.modalGenLoading ? 'Génération en cours...' : '✨ Générer le post complet à partir de cette idée'}</button>
+        <div class="hint">Contrairement à "Idée IA" (qui invente une idée), ce bouton rédige le texte du post à partir de ton titre/contenu tels quels.</div>
+      </div>
+      <div class="upload-row">
+        <div>
+          <label>Idée de visuel</label>
+          <input type="text" id="modal-visualidea-input" value="${escapeHtml(it.visualIdea||'')}" placeholder="Ex. photo de match, portrait...">
+        </div>
+        <div>
+          <label>Hashtags</label>
+          <input type="text" id="modal-hashtags-input" value="${escapeHtml(it.hashtags||'')}" placeholder="Ex. #igny #hand">
+        </div>
+      </div>
+      <div class="field">
+        <label>Date</label>
+        <input type="date" id="modal-date-input" value="${it.date}" oninput="state.editingItem.date=this.value" onchange="state.editingItem.date=this.value">
+      </div>
+      <div class="field">
+        <label>Canaux</label>
+        <div class="chip-row">
+          ${Object.keys(CHANNEL_META).map(c=>`<div class="chip ${it.channels.includes(c)?'selected':''}" onclick="toggleChannel('${c}')">${CHANNEL_META[c].label}</div>`).join('')}
+        </div>
+      </div>
+      <div class="field">
+        <label>Statut</label>
+        <select onchange="state.editingItem.status=this.value">
+          ${STATUS.map(s=>`<option value="${s}" ${it.status===s?'selected':''}>${STATUS_LABEL[s]}</option>`).join('')}
+        </select>
+      </div>
+      <div class="field">
+        <label style="display:flex; align-items:center; gap:8px; cursor:pointer; text-transform:none; font-size:14px; color:var(--ink); font-weight:500;">
+          <input type="checkbox" ${it.includeInNewsletter===true?'checked':''} onchange="state.editingItem.includeInNewsletter=this.checked" style="width:auto;">
+          Inclure cet événement dans la newsletter du mois
+        </label>
+        <div class="hint">Décoché, cet événement ne sera pas repris automatiquement quand tu génères la newsletter du mois.</div>
+      </div>
+      ${it.imageId ? (function(){ const img = state.images.find(i=>i.id===it.imageId); return img ? `<div class="selected-image-banner"><img src="${img.dataUrl}"> Visuel associé : ${escapeHtml(img.name)}</div>` : ''; })() : ''}
+      <div class="modal-actions">
+        <div>${it.id ? `<button class="btn btn-ghost" onclick="deleteModalItem()">Supprimer</button> <button class="btn" onclick="duplicateModalItem()">Dupliquer</button>` : ''}</div>
+        <div style="display:flex; gap:8px;">
+          <button class="btn" onclick="closeModal()">Annuler</button>
+          <button class="btn btn-primary" onclick="saveModalItem()">Enregistrer</button>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function renderIdeasModal(){
+  let body;
+  if(state.ideasLoading){ body = `<div class="loading-line"><div class="spinner"></div> Recherche d'idées pour le mois...</div>`; }
+  else if(state.ideasError){ body = `<div class="hint" style="color:var(--red);">${state.ideasError}</div><button class="btn" style="margin-top:10px;" onclick="generateIdeas()">Réessayer</button>`; }
+  else if(state.ideasResults){
+    body = state.ideasResults.map((idea, idx)=>`
+      <div class="idea-row">
+        <div>
+          <div class="idea-title">${escapeHtml(idea.titre)}</div>
+          <div class="hint">${escapeHtml(idea.type||'')} · jour ${idea.jour_du_mois||'?'} · ${(idea.canaux||[]).map(c=>CHANNEL_META[c]?.label||c).join(', ')}</div>
+          ${idea.idee_visuel ? `<div class="hint">📷 ${escapeHtml(idea.idee_visuel)}</div>` : ''}
+        </div>
+        <button class="btn btn-sm ${idea.added?'':'btn-primary'}" ${idea.added?'disabled':''} onclick="addIdeaToCalendar(${idx})">${idea.added ? 'Ajouté' : 'Ajouter'}</button>
+      </div>`).join('');
+  } else { body = ''; }
+
+  return `
+  <div class="overlay" onclick="if(event.target===this) closeIdeasModal()">
+    <div class="modal wide">
+      <h3>Idées de communication — ${MONTHS[state.viewDate.getMonth()]} ${state.viewDate.getFullYear()}</h3>
+      ${body}
+      <div class="modal-actions" style="justify-content:flex-end;">
+        <button class="btn" onclick="closeIdeasModal()">Fermer</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function renderGenerator(){
+  return `
+    <div class="chip-row" style="margin-bottom:18px;">
+      <div class="chip ${state.genMode==='post'?'selected':''}" onclick="setGenMode('post')">Posts réseaux sociaux</div>
+      <div class="chip ${state.genMode==='newsletter'?'selected':''}" onclick="setGenMode('newsletter')">Newsletter mensuelle</div>
+    </div>
+    ${state.genMode === 'post' ? renderPostGenerator() : renderNewsletterGenerator()}
+    <div class="card" style="margin-top:18px;">
+      <div class="section-toggle ${state.historyOpen?'open':''}" onclick="toggleHistory()">
+        <label style="margin:0;">Historique des générations (${state.history.length})</label>
+        <span class="chev">›</span>
+      </div>
+      ${state.historyOpen ? renderHistoryList() : ''}
+    </div>
+  `;
+}
+
+function renderExerciseLibrary(){
+  const categories = Array.from(new Set(EXERCISE_LIBRARY.map(e=>e.categorie)));
+  const postes = Array.from(new Set(EXERCISE_LIBRARY.map(e=>e.poste)));
+  const types = Array.from(new Set(EXERCISE_LIBRARY.map(e=>e.type)));
+  const f = state.exerciseFilters;
+
+  const filtered = EXERCISE_LIBRARY.filter(e=>
+    (f.categorie==='all' || e.categorie===f.categorie) &&
+    (f.poste==='all' || e.poste===f.poste) &&
+    (f.type==='all' || e.type===f.type)
+  );
+
+  return `
+    <div class="card">
+      <label>Bibliothèque d'exercices (avec schéma)</label>
+      <div class="upload-row">
+        <div>
+          <label>Catégorie</label>
+          <select onchange="setExerciseFilter('categorie', this.value)">
+            <option value="all" ${f.categorie==='all'?'selected':''}>Toutes</option>
+            ${categories.map(c=>`<option value="${c}" ${f.categorie===c?'selected':''}>${c}</option>`).join('')}
+          </select>
+        </div>
+        <div>
+          <label>Poste du joueur</label>
+          <select onchange="setExerciseFilter('poste', this.value)">
+            <option value="all" ${f.poste==='all'?'selected':''}>Tous</option>
+            ${postes.map(p=>`<option value="${p}" ${f.poste===p?'selected':''}>${p}</option>`).join('')}
+          </select>
+        </div>
+        <div>
+          <label>Type</label>
+          <select onchange="setExerciseFilter('type', this.value)">
+            <option value="all" ${f.type==='all'?'selected':''}>Tous</option>
+            ${types.map(t=>`<option value="${t}" ${f.type===t?'selected':''}>${t}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+      <div class="hint" style="margin-bottom:12px;">${filtered.length} exercice(s). Clique sur un exercice pour pré-remplir le champ "Détails" avec sa description.</div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; max-height:420px; overflow-y:auto;">
+        ${filtered.map(ex=>`
+          <div class="preset-btn ${state.selectedExerciseId===ex.id?'active':''}" style="cursor:pointer; display:flex; flex-direction:column; gap:6px; padding:8px;" onclick="selectExercise('${ex.id}')">
+            ${renderExerciseDiagramSVG(ex.diagram)}
+            <span style="font-size:12px; font-weight:600;">${escapeHtml(ex.nom)}</span>
+            <span class="hint" style="margin:0;">${ex.poste} · ${ex.type}</span>
+          </div>
+        `).join('') || `<div class="hint">Aucun exercice pour cette combinaison de filtres.</div>`}
+      </div>
+    </div>
+  `;
+}
+
+function renderPostGenerator(){
+  const relevantImages = (state.genPreset === "Résultats du week-end")
+    ? state.images.filter(i=>i.category==='resultats')
+    : (state.genPreset === "Annonce d'un match")
+      ? state.images.filter(i=>i.category==='annonce_match')
+      : (state.genPreset === "Calendrier des matchs (semaine)")
+        ? state.images.filter(i=>i.category==='calendrier_semaine')
+        : [];
+
+  return `
+    <div class="gen-layout">
+      <div>
+        <div class="card">
+          <label>Type de contenu</label>
+          <div class="preset-grid">
+            ${PRESETS.map(p=>`<button class="preset-btn ${state.genPreset===p?'active':''}" onclick="setPreset('${p.replace(/'/g,"\\'")}')">${p}</button>`).join('')}
+          </div>
+          <label>Canaux</label>
+          <div class="chip-row" style="margin-bottom:16px;">
+            ${POST_CHANNELS.map(c=>`<div class="chip ${state.genChannels[c]?'selected':''}" onclick="toggleGenChannel('${c}')">${CHANNEL_META[c].label}</div>`).join('')}
+          </div>
+          <label>Détails (score, nom, date, contexte...)</label>
+          <textarea id="gen-details-input" rows="5" placeholder="Ex. Victoire 28-24 contre Massy, super match des benjamins, joueuse du match : Léa">${escapeHtml(state.genDetails)}</textarea>
+          <div style="margin-top:16px; display:flex; gap:8px;">
+            <button class="btn btn-gold" style="flex:1; justify-content:center;" onclick="generateContent()">Générer maintenant</button>
+            <button class="btn" style="flex:1; justify-content:center;" onclick="addToQueue()">Ajouter à la file</button>
+          </div>
+          ${state.genError ? `<div class="hint" style="color:var(--red); margin-top:8px;">${state.genError}</div>` : ''}
+          <div class="hint" style="margin-top:8px;">"Ajouter à la file" permet d'empiler plusieurs contenus (types, canaux, détails différents) puis de tous les générer en série, sans attendre entre chaque.</div>
+        </div>
+
+        ${renderQueue() ? `<div class="card">${renderQueue()}</div>` : ''}
+        ${IMAGE_PRESETS.includes(state.genPreset) ? renderMatchBuilder() : ''}
+        ${state.genPreset === "Conseil technique / entraînement" ? renderExerciseLibrary() : ''}
+        ${state.genPreset ? renderMatchVisualSection() : ''}
+
+        <div class="card">
+          <label>Visuels du club</label>
+          <div class="upload-row">
+            <div>
+              <input type="text" id="img-name-input" placeholder="Nom du visuel" value="${escapeHtml(state.imageUploadName)}">
+            </div>
+            <div>
+              <select id="img-category-input">
+                ${Object.keys(IMAGE_CATEGORIES).map(k=>`<option value="${k}" ${state.imageUploadCategory===k?'selected':''}>${IMAGE_CATEGORIES[k]}</option>`).join('')}
+              </select>
+            </div>
+          </div>
+          <input type="file" accept="image/*" onchange="handleImageFile(event)" style="margin-bottom:14px;">
+          <div class="thumb-grid">
+            ${state.images.map(img=>`
+              <div class="thumb ${state.genSelectedImageId===img.id?'selected':''}" onclick="selectGenImage('${img.id}')" title="${escapeHtml(img.name)}">
+                <img src="${img.dataUrl}">
+                <div class="thumb-label">${IMAGE_CATEGORIES[img.category]||''}</div>
+                <button class="thumb-del" onclick="event.stopPropagation(); deleteImage('${img.id}')">×</button>
+              </div>`).join('') || `<div class="hint">Ajoute le logo du club et des visuels pour les résultats et annonces de match.</div>`}
+          </div>
+          ${relevantImages.length ? `<div class="hint" style="margin-top:10px;">Visuels suggérés pour "${state.genPreset}" ci-dessus, en surbrillance dorée si sélectionné.</div>` : ''}
+        </div>
+
+      </div>
+
+      <div>
+        ${state.batchLoading ? `<div class="loading-line"><div class="spinner"></div> Génération de la file en cours... ${state.batchProgress ? '('+escapeHtml(state.batchProgress)+')' : ''}</div>` : ''}
+        ${!state.batchLoading && state.batchResults && state.batchResults.length ? renderBatchResults() : ''}
+        ${state.genLoading ? `<div class="loading-line"><div class="spinner"></div> Rédaction en cours...</div>` : ''}
+        ${!state.genLoading && !state.batchLoading && !state.genResults && (!state.batchResults || !state.batchResults.length) ? `<div class="empty-state">Choisis un type de contenu et clique sur générer.<br>Les textes s'affichent ici, prêts à copier ou à ajouter au calendrier.</div>` : ''}
+        ${!state.genLoading && state.genResults ? renderResults() : ''}
+      </div>
+    </div>
+  `;
+}
+
+function pullFromHistoryForMonth(){
+  const sel = document.getElementById('nl-month-select');
+  const mk = sel ? sel.value : state.nlMonth;
+  state.nlMonth = mk;
+  const entries = state.history.filter(h=> h.timestamp && monthKey(new Date(h.timestamp)) === mk);
+
+  const resultsText = entries.filter(h=>h.preset==="Résultats du week-end" && h.details).map(h=>h.details).join('\n');
+  const matchsText = entries.filter(h=>(h.preset==="Annonce d'un match" || h.preset==="Calendrier des matchs (semaine)") && h.details).map(h=>h.details).join('\n');
+
+  const calendarItems = state.items.filter(it=>{
+    const d = new Date(it.date);
+    return monthKey(d) === mk && it.includeInNewsletter === true;
+  });
+  const eventsText = calendarItems.map(it=>`• ${it.title}${it.content && it.content.trim()!==it.title.trim() ? ' — '+it.content.trim().slice(0,140) : ''}`).join('\n');
+
+  if(resultsText) state.nl.resultatsBrut = resultsText;
+  if(matchsText) state.nl.matchsBrut = matchsText;
+  if(eventsText){
+    const prefix = "Événements du mois signalés pour la newsletter (à intégrer dans le mot du club et/ou les coulisses) :\n";
+    state.nl.contexte = state.nl.contexte ? state.nl.contexte + '\n\n' + prefix + eventsText : prefix + eventsText;
+  }
+  if(!resultsText && !matchsText && !eventsText){
+    alert("Aucun résultat, match ou événement coché pour la newsletter n'a été trouvé pour ce mois. Génère d'abord des posts, ou coche 'Inclure dans la newsletter' sur tes contenus du calendrier.");
+  }
+  render();
+}
+
+function fieldLabelWithClear(text, field){
+  return `<label style="margin-top:14px; display:flex; justify-content:space-between; align-items:center;">
+    <span>${text}</span>
+    <button type="button" class="btn-ghost btn-sm" onclick="clearNlField('${field}')">Vider</button>
+  </label>`;
+}
+
+function renderNewsletterGenerator(){
+  const nl = state.nl;
+  const base = new Date();
+  const upcoming = [];
+  for(let i=0;i<12;i++){ upcoming.push(monthKey(new Date(base.getFullYear(), base.getMonth()+i, 1))); }
+  const monthOptions = Array.from(new Set([
+    ...upcoming,
+    ...state.history.map(h=>monthKey(new Date(h.timestamp))),
+    ...Object.keys(state.nlDrafts)
+  ])).sort();
+
+  return `
+    <div class="gen-layout">
+      <div class="card">
+        <div class="field">
+          <label>Mois de la newsletter</label>
+          <div style="display:flex; gap:8px;">
+            <select id="nl-month-select" style="flex:1;" onchange="switchNlMonth(this.value)">
+              ${monthOptions.map(mk=>{
+                const [y,m] = mk.split('-');
+                const label = MONTHS[parseInt(m,10)-1] + ' ' + y;
+                return `<option value="${mk}" ${state.nlMonth===mk?'selected':''}>${label}${state.nlDrafts[mk]?' •':''}</option>`;
+              }).join('')}
+            </select>
+            <button class="btn btn-sm" onclick="pullFromHistoryForMonth()">Récupérer depuis les posts</button>
+          </div>
+          <div class="hint">Prépare tes newsletters à l'avance : choisis un mois futur, remplis ce que tu as déjà, et reviens plus tard. Chaque mois est sauvegardé séparément (marqué "•" dans la liste une fois qu'il contient un brouillon).</div>
+          <button class="btn btn-sm" style="margin-top:8px;" onclick="saveNlDraft(state.nlMonth)">💾 Sauvegarder ce brouillon</button>
+        </div>
+        <div class="field">
+          <label>Liste des licenciés (Excel : prénom + date de naissance)</label>
+          <input type="file" accept=".xlsx,.xls" onchange="handlePlayersExcelFile(event)">
+          <div class="hint">${state.playersList.length ? `${state.playersList.length} licencié(s) importé(s) — ` : 'Aucune liste importée pour l\'instant. '}Une fois importée, la liste est mémorisée : plus besoin de la recharger chaque mois.</div>
+          ${getBirthdaysForMonth(state.nlMonth).length ? `<div class="hint">🎂 Anniversaires ce mois-ci : ${getBirthdaysForMonth(state.nlMonth).map(p=>p.prenom).join(', ')}</div>` : ''}
+        </div>
+        ${fieldLabelWithClear('Contexte du mois / mot du club', 'contexte')}
+        <textarea id="nl-contexte" rows="3" placeholder="Ex. mars 2026, belle dynamique des jeunes, merci aux bénévoles...">${escapeHtml(nl.contexte)}</textarea>
+
+        ${fieldLabelWithClear('Résultats bruts du mois (colle tes scores/bilans)', 'resultatsBrut')}
+        <textarea id="nl-resultats" rows="5" placeholder="Ex. Séniors +16M Div2 : 29-27 vs Limours HB (victoire), 29-29 vs Epinay (nul)...">${escapeHtml(nl.resultatsBrut)}</textarea>
+
+        ${fieldLabelWithClear('Matchs à venir bruts (colle ton calendrier)', 'matchsBrut')}
+        <textarea id="nl-matchs" rows="5" placeholder="Ex. +16M Div2 dimanche 15 mars 15h vs HBC Dourdan, Gymnase Guéric Kervadec - Igny (domicile)...">${escapeHtml(nl.matchsBrut)}</textarea>
+
+        ${fieldLabelWithClear('Événement spécial du mois (optionnel)', 'evenementSpecial')}
+        <textarea id="nl-evenement" rows="2" placeholder="Ex. EIVHB fête ses 50 ans le 6 juin 2026...">${escapeHtml(nl.evenementSpecial)}</textarea>
+
+        ${fieldLabelWithClear('Thème "le saviez-vous" (optionnel)', 'saviezVous')}
+        <input type="text" id="nl-saviez" value="${escapeHtml(nl.saviezVous)}" placeholder="Ex. la minute d'arbitrage">
+
+        ${fieldLabelWithClear('Portrait du mois (optionnel)', 'portraitBrut')}
+        <input type="text" id="nl-portrait" value="${escapeHtml(nl.portraitBrut)}" placeholder="Ex. nos jeunes arbitres : Arthur, Arthus, Victor">
+
+        ${fieldLabelWithClear('Coup de main du mois / remerciements (optionnel)', 'coupDeMain')}
+        <textarea id="nl-coupdemain" rows="2" placeholder="Ex. merci à Lionel pour son aide sur les entraînements des -13M...">${escapeHtml(nl.coupDeMain)}</textarea>
+
+        ${fieldLabelWithClear('Partenaire du mois (optionnel)', 'partenaireDuMois')}
+        <textarea id="nl-partenaire" rows="2" placeholder="Ex. Boulangerie Martin, offre les goûters lors des tournois...">${escapeHtml(nl.partenaireDuMois)}</textarea>
+
+        <label style="margin-top:14px; display:flex; justify-content:space-between; align-items:center;">
+          <span>Agenda condensé du mois suivant (optionnel)</span>
+          <div style="display:flex; gap:6px;">
+            <button type="button" class="btn btn-sm" style="text-transform:none; letter-spacing:normal; font-weight:500;" onclick="suggestAgendaFromCalendar()">Suggérer depuis le calendrier</button>
+            <button type="button" class="btn-ghost btn-sm" onclick="clearNlField('agendaSuivant')">Vider</button>
+          </div>
+        </label>
+        <textarea id="nl-agenda" rows="3" placeholder="Ex. 12/04 - AG du club, 19/04 - Tournoi jeunes...">${escapeHtml(nl.agendaSuivant)}</textarea>
+
+        ${fieldLabelWithClear('Question ouverte / sondage aux licenciés (optionnel)', 'sondage')}
+        <input type="text" id="nl-sondage" value="${escapeHtml(nl.sondage)}" placeholder="Ex. quel est votre meilleur souvenir EIVHB ?">
+
+        <div style="margin-top:16px;">
+          <button class="btn btn-gold" style="width:100%; justify-content:center;" onclick="generateNewsletter()">Générer la newsletter</button>
+        </div>
+        ${state.nlError ? `<div class="hint" style="color:var(--red); margin-top:8px;">${state.nlError}</div>` : ''}
+        <div class="hint" style="margin-top:10px;">Les résultats et matchs à venir ne sont jamais inventés — seules les données que tu colles ici sont utilisées.</div>
+      </div>
+
+      <div>
+        ${state.nlLoading ? `<div class="loading-line"><div class="spinner"></div> Rédaction de la newsletter...</div>` : ''}
+        ${!state.nlLoading && !state.nlResults ? `<div class="empty-state">Renseigne au moins les résultats ou les matchs à venir, puis génère.<br>La structure reprend celle de ta newsletter Canva : mot du club, résultats, matchs à venir, coulisses, le saviez-vous, portrait, stats, valeurs.</div>` : ''}
+        ${!state.nlLoading && state.nlResults ? renderNewsletterResults() : ''}
+      </div>
+    </div>
+  `;
+}
+
+function renderHistoryList(){
+  if(state.history.length===0) return `<div class="hint">Aucune génération pour l'instant.</div>`;
+  return state.history.map(h=>`
+    <div class="history-item" onclick="${h.type==='newsletter' ? `reuseNewsletterEntry('${h.id}')` : `reuseHistoryEntry('${h.id}')`}">
+      <div class="history-head">
+        <div class="history-title">${escapeHtml(h.preset)}</div>
+        <button class="btn-ghost btn-sm" onclick="deleteHistoryEntry('${h.id}', event)">Suppr.</button>
+      </div>
+      <div class="history-meta">${new Date(h.timestamp).toLocaleString('fr-FR')} · ${h.channels.map(c=>CHANNEL_META[c]?.label||c).join(', ')}</div>
+    </div>
+  `).join('');
+}
+
+function reuseNewsletterEntry(id){
+  const entry = state.history.find(h=>h.id===id);
+  if(!entry) return;
+  state.tab = 'generator';
+  state.genMode = 'newsletter';
+  state.nlResults = entry.results;
+  state.nlEditedSections = {};
+  render();
+}
+
+async function regenerateNlSection(key){
+  const sections = getNewsletterSections(state.nlResults);
+  const section = sections.find(s=>s.key===key);
+  if(!section) return;
+  const currentText = getEditedSectionText(section);
+  state.nlSectionRegenLoading = key; render();
+
+  const systemPrompt = `Tu es le community manager du club de handball amateur ${CLUB.nom} (${CLUB.sigle}). Ton : ${CLUB.ton}.
+Tu réécris/améliores UNE section d'une newsletter déjà générée, sans changer les faits (scores, dates, noms) qu'elle contient.
+Réponds UNIQUEMENT avec un objet JSON valide : {"texte":"nouvelle version de la section"}`;
+  const userPrompt = `Section : "${section.label}"
+Texte actuel de cette section :
+${currentText}
+
+Propose une nouvelle version, un peu différente dans la formulation (plus vivante ou mieux structurée), en conservant exactement les mêmes informations factuelles (aucun chiffre, nom ou date inventé).`;
+
+  try{
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 800, system: systemPrompt, messages: [{ role:"user", content:userPrompt }] })
+    });
+    const data = await response.json();
+    const textBlock = (data.content||[]).find(b=>b.type==='text');
+    if(!textBlock) throw new Error('no text');
+    const parsed = parseAIJson(textBlock.text);
+    if(parsed.texte) state.nlEditedSections[key] = parsed.texte;
+  }catch(e){
+    alert("La régénération a échoué. Réessaie.");
+    console.error(e);
+  }
+  state.nlSectionRegenLoading = null;
+  render();
+}
+
+function renderNewsletterResults(){
+  const nl = state.nlResults;
+  const sections = getNewsletterSections(nl);
+
+  let html = `<div class="hint" style="margin-bottom:10px;">Chaque encart ci-dessous correspond à une section de ta maquette Canva : modifie le texte si besoin, puis copie-le pour le coller directement dans le bloc correspondant.</div>`;
+
+  html += sections.map(s=>`
+    <div class="result-card">
+      <div class="result-head" style="background:var(--blue-darker);"><span>${escapeHtml(s.label)}</span></div>
+      <div style="padding:14px 16px;">
+        <textarea class="resizable-textarea" rows="4" style="border:none; padding:0; font-size:13.5px; line-height:1.5;" oninput="state.nlEditedSections['${s.key}']=this.value">${escapeHtml(getEditedSectionText(s))}</textarea>
+      </div>
+      <div class="result-foot">
+        <button class="btn btn-sm" onclick="copyText(getEditedSectionText(getNewsletterSections(state.nlResults).find(x=>x.key==='${s.key}')), this)">Copier cette section</button>
+        <button class="btn btn-sm" ${state.nlSectionRegenLoading===s.key?'disabled':''} onclick="regenerateNlSection('${s.key}')">${state.nlSectionRegenLoading===s.key?'Régénération...':"🔄 Régénérer avec l'IA"}</button>
+      </div>
+    </div>
+  `).join('');
+
+  html += `<div class="card" style="margin-top:6px;">
+    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+      <button class="btn btn-sm" onclick="exportNewsletterMarkdown()">Exporter tout en .md</button>
+      <button class="btn btn-sm btn-primary" onclick="addNewsletterToCalendar()">Ajouter au calendrier</button>
+    </div>
+  </div>`;
+  return html;
+}
+
+function renderResults(){
+  const r = state.genResults;
+  const img = state.genSelectedImageId ? state.images.find(i=>i.id===state.genSelectedImageId) : null;
+  const imgThumb = img ? `<div style="padding:12px 16px 0;"><img src="${img.dataUrl}" style="max-width:120px; max-height:120px; border-radius:8px; border:1px solid var(--line); display:block;"></div>` : '';
+  const fs = state.resultsFontSize;
+  const editableCard = (channel, headClass, label)=>{
+    if(!r[channel]) return '';
+    const text = getFinalChannelText(r, channel);
+    const canvaUrl = channel==='instagram' ? 'https://www.canva.com/instagram-posts/templates/'
+      : channel==='facebook' ? 'https://www.canva.com/facebook-posts/templates/' : null;
+    const canPublish = (channel==='facebook' || channel==='instagram');
+    return `<div class="result-card">
+      <div class="result-head ${headClass}"><span>${label}</span></div>
+      ${imgThumb}
+      <div style="padding:14px 16px;">
+        <textarea class="resizable-textarea" rows="6" style="border:none; padding:0; font-size:${fs}px; line-height:1.55;" oninput="state.genResults.${channel}._edited=this.value">${escapeHtml(text)}</textarea>
+      </div>
+      <div class="result-foot">
+        <button class="btn btn-sm" onclick="copyText(getFinalChannelText(state.genResults,'${channel}'), this)">Copier</button>
+        <button class="btn btn-sm btn-primary" onclick="addResultToCalendar('${channel}')">Ajouter au calendrier</button>
+        ${canvaUrl ? `<a href="${canvaUrl}" target="_blank" rel="noopener" class="btn btn-sm" style="text-decoration:none;">🎨 Construire sur Canva ↗</a>` : ''}
+        ${canPublish ? `<button class="btn btn-sm ${state.makeWebhookUrl?'btn-gold':''}" ${state.publishStatus==='loading'?'disabled':''} onclick="publishViaWebhook('${channel}')">${state.publishStatus==='loading'?'Envoi...':'🚀 Publier via Make'}</button>` : ''}
+      </div>
+    </div>`;
+  };
+  let html = `<div style="display:flex; justify-content:flex-end; align-items:center; gap:8px; margin-bottom:10px;">
+    <span class="hint" style="margin:0;">Taille du texte</span>
+    <button class="btn btn-sm" onclick="changeResultsFontSize(-2)">A-</button>
+    <span class="hint" style="margin:0;">${fs}px</span>
+    <button class="btn btn-sm" onclick="changeResultsFontSize(2)">A+</button>
+  </div>`;
+  if(state.publishStatus === 'success') html += `<div class="selected-image-banner" style="border-color:#4CAF50; background:#EFF6ED;"><span style="color:#2E7D32;">✅ Envoyé à Make avec succès. Vérifie que la publication apparaît bien sur le réseau visé.</span></div>`;
+  if(state.publishStatus === 'error') html += `<div class="selected-image-banner" style="border-color:var(--red); background:#FDEEF0;"><span style="color:var(--red);">❌ Échec de l'envoi. Vérifie l'URL du webhook dans l'onglet "Affiches Canva".</span></div>`;
+  html += editableCard('facebook', 'fb', 'Facebook');
+  html += editableCard('instagram', 'ig', 'Instagram');
+  html += editableCard('whatsapp', 'wa', 'WhatsApp');
+  html += editableCard('site', 'site', 'Site web');
+  return html;
+}
+
+function attachInputHandlers(){
+  const details = document.getElementById('gen-details-input');
+  if(details) details.oninput = (e)=>{ state.genDetails = e.target.value; };
+  const modalContent = document.getElementById('modal-content-input');
+  if(modalContent) modalContent.oninput = (e)=>{ if(state.editingItem) state.editingItem.content = e.target.value; };
+  const modalVisualIdea = document.getElementById('modal-visualidea-input');
+  if(modalVisualIdea) modalVisualIdea.oninput = (e)=>{ if(state.editingItem) state.editingItem.visualIdea = e.target.value; };
+  const modalHashtags = document.getElementById('modal-hashtags-input');
+  if(modalHashtags) modalHashtags.oninput = (e)=>{ if(state.editingItem) state.editingItem.hashtags = e.target.value; };
+  const modalDate = document.getElementById('modal-date-input');
+  if(modalDate){
+    modalDate.oninput = (e)=>{ if(state.editingItem) state.editingItem.date = e.target.value; };
+    modalDate.onchange = (e)=>{ if(state.editingItem) state.editingItem.date = e.target.value; };
+  }
+  const imgName = document.getElementById('img-name-input');
+  if(imgName) imgName.oninput = (e)=>{ state.imageUploadName = e.target.value; };
+  const genericTitle = document.getElementById('generic-visual-title');
+  if(genericTitle) genericTitle.oninput = (e)=>{ state.genericVisualTitle = e.target.value; };
+  const genericInfo = document.getElementById('generic-info-input');
+  if(genericInfo) genericInfo.oninput = (e)=>{ state.genericInfoInput = e.target.value; };
+  const imgCat = document.getElementById('img-category-input');
+  if(imgCat) imgCat.onchange = (e)=>{ state.imageUploadCategory = e.target.value; };
+
+  const bind = (id, key)=>{ const el = document.getElementById(id); if(el) el.oninput = (e)=>{ state.nl[key] = e.target.value; }; };
+  bind('nl-contexte','contexte');
+  bind('nl-resultats','resultatsBrut');
+  bind('nl-matchs','matchsBrut');
+  bind('nl-evenement','evenementSpecial');
+  bind('nl-saviez','saviezVous');
+  bind('nl-portrait','portraitBrut');
+  bind('nl-coupdemain','coupDeMain');
+  bind('nl-partenaire','partenaireDuMois');
+  bind('nl-agenda','agendaSuivant');
+  bind('nl-sondage','sondage');
+}
+
+/* ===== global handlers ===== */
+window.setTab = (t)=>{ state.tab=t; render(); };
+window.updatePosterBrief = updatePosterBrief;
+window.copyPosterBrief = copyPosterBrief;
+window.saveMakeWebhookUrl = saveMakeWebhookUrl;
+window.publishViaWebhook = publishViaWebhook;
+window.openModalNew = (ds)=>{ openModal(ds, null); };
+window.openModalFromCell = (id)=>{ const it = state.items.find(x=>x.id===id); openModal(it.date, it); };
+window.closeModal = closeModal;
+window.saveModalItem = saveModalItem;
+window.deleteModalItem = deleteModalItem;
+window.toggleChannel = toggleChannel;
+window.suggestModalIdea = suggestModalIdea;
+window.generateFromModalIdea = generateFromModalIdea;
+window.changeMonth = changeMonth;
+window.changeWeek = changeWeek;
+window.setCalView = (v)=>{ state.calView = v; render(); };
+window.setListFilter = (v)=>{ state.listStatusFilter = v; render(); };
+window.setListMonthFilter = (v)=>{ state.listMonthFilter = v; render(); };
+window.toggleListSelection = toggleListSelection;
+window.clearListSelection = clearListSelection;
+window.applyBulkStatus = applyBulkStatus;
+window.generateWeekTemplate = generateWeekTemplate;
+window.handlePillDragStart = handlePillDragStart;
+window.handleDayDrop = handleDayDrop;
+window.duplicateModalItem = duplicateModalItem;
+window.toggleKpi = ()=>{ state.kpiOpen = !state.kpiOpen; render(); };
+window.toggleFfLinks = ()=>{ state.ffLinksOpen = !state.ffLinksOpen; render(); };
+window.addFfLink = addFfLink;
+window.handlePlayersExcelFile = handlePlayersExcelFile;
+window.removeFfLink = removeFfLink;
+window.saveKpiForMonth = saveKpiForMonth;
+window.exportSeasonReport = exportSeasonReport;
+window.exportAllData = exportAllData;
+window.triggerImportFile = triggerImportFile;
+window.handleImportFile = handleImportFile;
+window.setPreset = (p)=>{ state.genPreset = p; state.genSelectedImageId = null; render(); };
+window.toggleGenChannel = (c)=>{ state.genChannels[c] = !state.genChannels[c]; render(); };
+window.generateContent = generateContent;
+window.changeResultsFontSize = (delta)=>{ state.resultsFontSize = Math.max(12, Math.min(32, state.resultsFontSize+delta)); render(); };
+window.addToQueue = addToQueue;
+window.selectExercise = selectExercise;
+window.setExerciseFilter = (field, value)=>{ state.exerciseFilters[field] = value; render(); };
+window.removeFromQueue = removeFromQueue;
+window.processQueue = processQueue;
+window.addResultToCalendar = addResultToCalendar;
+window.copyText = copyText;
+window.openIdeasModal = openIdeasModal;
+window.closeIdeasModal = closeIdeasModal;
+window.generateIdeas = generateIdeas;
+window.addIdeaToCalendar = addIdeaToCalendar;
+window.exportMonthPlanning = exportMonthPlanning;
+window.exportMonthPlanningSheet = exportMonthPlanningSheet;
+window.handleImageFile = handleImageFile;
+window.deleteImage = deleteImage;
+window.selectGenImage = selectGenImage;
+window.handleEivhbLogoFile = handleEivhbLogoFile;
+window.handleOpponentLogoFile = handleOpponentLogoFile;
+window.updateMatchBuilder = updateMatchBuilder;
+window.updateMatchBuilderSilent = updateMatchBuilderSilent;
+window.addMatchToBuilderList = addMatchToBuilderList;
+window.resetMatchBuilder = resetMatchBuilder;
+window.loadMatchIntoBuilder = loadMatchIntoBuilder;
+window.removeMatchFromBuilderList = removeMatchFromBuilderList;
+window.handleBackgroundFile = handleBackgroundFile;
+window.setVisualFormat = setVisualFormat;
+window.updateBgPosition = updateBgPosition;
+window.setVisualCaptionChannel = setVisualCaptionChannel;
+window.handleExtraPhotoFile = handleExtraPhotoFile;
+window.removeExtraPhoto = removeExtraPhoto;
+window.updatePhotoParam = updatePhotoParam;
+window.updateVisualStyle = updateVisualStyle;
+window.drawResultsVisual = drawResultsVisual;
+window.drawAnnounceVisual = drawAnnounceVisual;
+window.generateVisualPages = generateVisualPages;
+window.changeVisualPage = changeVisualPage;
+window.downloadAllVisualPages = downloadAllVisualPages;
+window.addGenericInfo = addGenericInfo;
+window.removeGenericInfo = removeGenericInfo;
+window.downloadMatchVisual = downloadMatchVisual;
+window.toggleHistory = ()=>{ state.historyOpen = !state.historyOpen; render(); };
+window.reuseHistoryEntry = reuseHistoryEntry;
+window.reuseNewsletterEntry = reuseNewsletterEntry;
+window.deleteHistoryEntry = deleteHistoryEntry;
+window.setGenMode = (m)=>{ state.genMode = m; render(); };
+window.generateNewsletter = generateNewsletter;
+window.pullFromHistoryForMonth = pullFromHistoryForMonth;
+window.saveNlDraft = saveNlDraft;
+window.switchNlMonth = switchNlMonth;
+window.clearNlField = clearNlField;
+window.regenerateNlSection = regenerateNlSection;
+window.suggestAgendaFromCalendar = suggestAgendaFromCalendar;
+window.exportNewsletterMarkdown = exportNewsletterMarkdown;
+window.addNewsletterToCalendar = addNewsletterToCalendar;
+window.state = state;
+
+render();
+loadAll();
+</script>
+</body>
+</html>
